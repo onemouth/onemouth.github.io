@@ -2,19 +2,19 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Categories on Put some ink into the inkpot</title>
-    <link>https://example.com/categories/</link>
+    <link>https://onemouth.github.io/categories/</link>
     <description>Recent content in Categories on Put some ink into the inkpot</description>
     <generator>Hugo -- gohugo.io</generator>
     
-        <atom:link href="https://example.com/categories/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="https://onemouth.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>C&#43;&#43; heap: priority_queue</title>
-      <link>https://example.com/posts/c&#43;&#43;-priority-queue/</link>
+      <link>https://onemouth.github.io/posts/c&#43;&#43;-priority-queue/</link>
       <pubDate>Sat, 02 May 2020 00:00:00 +0800</pubDate>
       
-      <guid>https://example.com/posts/c&#43;&#43;-priority-queue/</guid>
+      <guid>https://onemouth.github.io/posts/c&#43;&#43;-priority-queue/</guid>
       <description>假如需要使用到 heap, C++ 裡的 heap 可使用 &amp;lt;queue&amp;gt; 裡面的 priority_queue。 值得注意的是, priority_queue 預設是一個 max heap,想要 min heap 的話,要定義自己的 comp</description>
     </item>
     
