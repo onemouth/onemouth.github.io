@@ -8,8 +8,47 @@
         <name>LT Tsai</name>
         <email>and.liting@gmail.com</email>
     </author>
-    <updated>2022-03-12T00:00:00Z</updated>
+    <updated>2022-05-03T00:00:00Z</updated>
     <entry>
+    <title>iCloud上的酷東西-自訂電子郵件網域</title>
+    <link href="https://onemouth.github.io/posts/2022-05-03-icloud-cool-things.html" />
+    <id>https://onemouth.github.io/posts/2022-05-03-icloud-cool-things.html</id>
+    <published>2022-05-03T00:00:00Z</published>
+    <updated>2022-05-03T00:00:00Z</updated>
+    <summary type="html"><![CDATA[<article>
+    <h1>iCloud上的酷東西-自訂電子郵件網域</h1>
+    <section class="header">
+        Posted on May  3, 2022
+        
+        by LT
+        
+    </section>
+    <section>
+        <p>從2019開始就開始訂閱iCloud的儲存空間200G，因為免費的5GB實在不夠，加上可以和家人共享，就一直訂閱著，平常也不會去注意它有什麼新功能。</p>
+<p>最近才發現，這個訂閱服務早在2021就變成了<a href="https://support.apple.com/zh-tw/HT201238">iCloud Plus</a>，主要增加了幾個功能:</p>
+<ul>
+<li>隱藏我的電子郵件</li>
+<li><a href="https://support.apple.com/en-us/HT212514">自訂電子郵件網域</a></li>
+<li>HomeKit安全錄影</li>
+</ul>
+<p>剛好最近手上有個網域，我也一直想用綁個自己網域的email帳號，而不要再用<code>@gmail.com</code>，因為用自己的網域，感覺比較專業(?)</p>
+<p>Gmail只有企業版才提供自訂網域的功能，其他像<a href="https://protonmail.com/support/knowledge-base/paid-plans/">ProtonMail</a>雖然在付費版也有提供自訂網域，但每個月還要再多付約100元台幣訂閱，想了想，還會用iCloud Plus的就好，畢竟加量不加價！</p>
+<p>我的email： lt at ltt.pw</p>
+<p>請多指教!</p>
+    </section>
+</article>
+
+<comment>
+
+    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
+        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
+        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
+        data-theme="light" data-lang="en" crossorigin="anonymous" async>
+        </script>
+
+</comment>]]></summary>
+</entry>
+<entry>
     <title>10隻老鼠和1000個瓶子，其中一瓶有毒藥</title>
     <link href="https://onemouth.github.io/posts/2022-03-12-poision-and-rats.html" />
     <id>https://onemouth.github.io/posts/2022-03-12-poision-and-rats.html</id>
