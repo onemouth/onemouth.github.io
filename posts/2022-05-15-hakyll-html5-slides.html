@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Put some ink into the inkpot - 如何在Hakyll中產生slide shows</title>
+    
+    <meta name="keywords" content="hakyll">
+    
+    
+    <meta name="description" content="how to produce html slides by Hakyll">
+    
+    <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css" type="text/css">
+    <link rel="stylesheet" href="../css/default.css" />
+    <link rel="stylesheet" href="../css/table.css" />
+    <link rel="stylesheet" href="../css/hightlight.css" />
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <a href="../">Put some ink into the inkpot</a>
+        </div>
+        <nav>
+            <a href="../">Home</a>
+        </nav>
+    </header>
+
+    <main>
+        <article>
+    <h1>如何在Hakyll中產生slide shows</h1>
+    <section class="header">
+        Posted on May 15, 2022
+        
+        by LT
+        
+    </section>
+    <section>
+        <p>我們不只可以讓Hykyll產生HTML網頁，得利於Hakyll背後的<a href="https://pandoc.org/">Pandoc</a>的強大能力，只要是Pandoc支援的格式，其實都可以輸出。</p>
+<p>Pandoc支援許多種Slide格式，像是Slidy，reveal.js，DZSlides 等等。這篇blog主要會介紹如何讓Hakyll產生reveal.js的格式。</p>
+<p>在開始之前，我們要先看一下，在Hakyll裡面，一個Item的pandoc compile的流程大致是怎麼的。</p>
+<h2 id="pandoc-compile-流程">Pandoc Compile 流程</h2>
+<p>利用下面的函式，我們可以把一個Item，經過Pandoc之後，轉換成HTML格式。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 讀取檔案內容</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ot">getResourceBody ::</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- 將檔案內容轉換為Pandoc內部資料結構</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ot">readPandoc ::</span> <span class="dt">Item</span> <span class="dt">String</span>  <span class="ot">-&gt;</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">Pandoc</span>) </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- 從Pandoc內部資料結構轉換為HTML格式</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ot">writePandoc ::</span> <span class="dt">Item</span> <span class="dt">Pandoc</span> </span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>            <span class="ot">-&gt;</span> <span class="dt">Item</span> <span class="dt">String</span> </span></code></pre></div>
+<p>也就是可以組合成下面的 snippet：</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>compile <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>          getResourceBody</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> readPandoc</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> writePandoc</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>          <span class="co">-- ....</span></span></code></pre></div>
+<p>因為這個套路蠻固定的，所以Hakyll直接提供了一個<code>pandocCompiler</code>，等同於上面三個的組合</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 讀取檔案內容，經由Pandoc處理後輸出。</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ot">pandocCompiler ::</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</span></code></pre></div>
+<p>這邊要注意的是，<code>writePandoc</code> 必定是產生HTML格式，也就是說，它呼叫的是Pandoc的<a href="https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeHtml5String">writeHtml5String</a>這個函式。但因為我們想要產生reveal.js格式，所以應該要使用<a href="https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeRevealJs">writeRevealJs</a>函式才對。</p>
+<h2 id="定義自己的-writepandoc">定義自己的 writePandoc</h2>
+<p>也就是說，我們不能使用預設的<code>writePandoc</code>函式，而應該自定義一個<code>writePandocToRevealJs</code>，並在裡面呼叫Pandoc的<a href="https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeRevealJs">writeRevealJs</a>函式。</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">writePandocToRevealJs ::</span> <span class="dt">Item</span> <span class="dt">Pandoc</span> <span class="ot">-&gt;</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>writePandocToRevealJs <span class="ot">=</span> <span class="fu">traverse</span> <span class="op">$</span> \pandoc <span class="ot">-&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">case</span> runPure (PandocWriter.writeRevealJs slidesWriterOptions pandoc) <span class="kw">of</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Left</span> err <span class="ot">-&gt;</span> <span class="fu">fail</span> <span class="op">$</span> <span class="fu">show</span> err</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Right</span> x <span class="ot">-&gt;</span> <span class="fu">return</span> (T.unpack x)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="ot">slidesWriterOptions ::</span> <span class="dt">WriterOptions</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>slidesWriterOptions <span class="ot">=</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  defaultHakyllWriterOptions</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    { writerHTMLMathMethod <span class="ot">=</span> <span class="dt">MathJax</span> <span class="st">&quot;&quot;</span> <span class="co">-- 使用MathJax</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    }</span></code></pre></div>
+<p>而整個Rule monad就會像下列這樣：</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>  match <span class="st">&quot;slides/*&quot;</span> <span class="op">$</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">do</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>      route <span class="op">$</span> setExtension <span class="st">&quot;html&quot;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>      compile <span class="op">$</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">do</span> getResourceBody</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> readPandoc</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> writePandocToRevealJs</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/revealjs.html&quot;</span> postCtx</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> relativizeUrls</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span></code></pre></div>
+    </section>
+</article>
+
+<comment>
+
+    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top" data-theme="light" data-lang="en" crossorigin="anonymous" async>
+        </script>
+
+</comment>
+    </main>
+
+    <footer>
+        Site proudly generated by
+        <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+    </footer>
+</body>
+
+</html>
