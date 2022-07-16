@@ -25,6 +25,7 @@
         </div>
         <nav>
             <a href="../">Home</a>
+            <a href="../archive.html">Archive</a>
         </nav>
     </header>
 
@@ -75,7 +76,7 @@
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>除了nil map以外，像是nil slice, nil channel也都有一些“nil safe”的操作。</p>
 <p>對nil slice可以用<code>len</code>取長度，也可以做<code>append</code>操作。</p>
-<p>也可以對nil channel做receive value的動作。(雖然這樣會永久block住)</p>
+<p>也可以對nil channel做receive value或send value的動作。(雖然這樣會永久block住)</p>
 <h2 id="reference">Reference</h2>
 <ol type="1">
 <li><a href="https://pragprog.com/titles/d-gobrain/go-brain-teasers/">Go Brain Teasers</a></li>
