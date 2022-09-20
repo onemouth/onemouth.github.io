@@ -114,7 +114,7 @@
 <span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">return</span> <span class="ot">nil</span></span>
 <span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>這個例子的重點是我們的struct定義了 <code>Unwrap()</code> 函式，利用這個函式，<code>erros.Is</code> 和 <code>errors.As</code> 才能正常運作，不只是嘗試match <code>badValueError{value: v, err: err}</code>這個eror，還會不斷的往下尋找是否有其他能對應的error。</p>
-<p>另一個我們可以定義的是<code>Is(target error) bool</code> 這個函式，他可以讓 <code>errors.Is</code> 直接呼叫，表示我們定義的這個error，其實跟另外某個error是相等的。</p>
+<p>另一個我們可以定義的是<code>Is(target error) bool</code> 這個函式，他可以讓 <code>errors.Is</code> 使用，表示我們定義的這個error，其實跟另外某個error是相等的。</p>
 <h1 data-number="3" id="結語"><span class="header-section-number">3</span> 結語</h1>
 <p>在這篇文章中，探討了我在 Go 中常使用的error handling技巧，在1.13之後，Go本身提供的error handling機制，的確是更加成熟了。</p>
 
