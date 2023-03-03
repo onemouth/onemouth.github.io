@@ -15,16 +15,12 @@
     <id>https://onemouth.github.io/posts/2023-01-02-consistent-hash.html</id>
     <published>2023-01-02T00:00:00Z</published>
     <updated>2023-01-02T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <h1>Consistent Hashing (和其他類似演算法)</h1>
-    <section class="header">
-        Posted on January  2, 2023
-        
-        by LT
-        
-    </section>
-    <section>
-        <div class="toc"><div class="header">Table of Contents</div>
+    <summary type="html"><![CDATA[<div><article><h1>Consistent Hashing (和其他類似演算法)</h1><section class="header">
+Posted on January  2, 2023
+
+by LT
+
+</section><section><div class="toc"><div class="header">Table of Contents</div>
 <ul>
 <li><a href="#問題1-平均分配"><span class="toc-section-number">1</span> 問題1: 平均分配</a>
 <ul>
@@ -199,23 +195,8 @@
 <li>redis hash slots</li>
 <li>consistent hash with bounded loads</li>
 </ul>
-
-    </section>
-</article>
-
-<comment>
-
-    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
-        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
-        data-theme="light" data-lang="en" crossorigin="anonymous" async>
-        </script>
-
-    <script type="text/javascript" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
-
-</comment>]]></summary>
+</section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+]]></summary>
 </entry>
 <entry>
     <title>設計 Golang 的 error</title>
@@ -223,16 +204,12 @@
     <id>https://onemouth.github.io/posts/2022-09-20-golang-errors.html</id>
     <published>2022-09-20T00:00:00Z</published>
     <updated>2022-09-20T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <h1>設計 Golang 的 error</h1>
-    <section class="header">
-        Posted on September 20, 2022
-        
-        by LT
-        
-    </section>
-    <section>
-        <div class="toc"><div class="header">Table of Contents</div>
+    <summary type="html"><![CDATA[<div><article><h1>設計 Golang 的 error</h1><section class="header">
+Posted on September 20, 2022
+
+by LT
+
+</section><section><div class="toc"><div class="header">Table of Contents</div>
 <ul>
 <li><a href="#package-內部產生的-error"><span class="toc-section-number">1</span> package 內部產生的 error</a>
 <ul>
@@ -325,23 +302,8 @@
 <p>另一個我們可以定義的是<code>Is(target error) bool</code> 這個函式，他可以讓 <code>errors.Is</code> 使用，表示我們定義的這個error，其實跟另外某個error是相等的。</p>
 <h1 data-number="3" id="結語"><span class="header-section-number">3</span> 結語</h1>
 <p>在這篇文章中，探討了我在 Go 中常使用的error handling技巧，在1.13之後，Go本身提供的error handling機制，的確是更加成熟了。</p>
-
-    </section>
-</article>
-
-<comment>
-
-    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
-        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
-        data-theme="light" data-lang="en" crossorigin="anonymous" async>
-        </script>
-
-    <script type="text/javascript" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
-
-</comment>]]></summary>
+</section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+]]></summary>
 </entry>
 <entry>
     <title>[筆記] Go：Nil Map</title>
@@ -349,16 +311,12 @@
     <id>https://onemouth.github.io/posts/2022-07-14-go-empty-map.html</id>
     <published>2022-07-14T00:00:00Z</published>
     <updated>2022-07-14T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <h1>[筆記] Go：Nil Map</h1>
-    <section class="header">
-        Posted on July 14, 2022
-        
-        by LT
-        
-    </section>
-    <section>
-        <div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">package</span> main</span>
+    <summary type="html"><![CDATA[<div><article><h1>[筆記] Go：Nil Map</h1><section class="header">
+Posted on July 14, 2022
+
+by LT
+
+</section><section><div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">package</span> main</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="op">(</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>	<span class="st">&quot;fmt&quot;</span></span>
@@ -399,23 +357,8 @@
 <h2 id="reference">Reference</h2>
 <ol type="1">
 <li><a href="https://pragprog.com/titles/d-gobrain/go-brain-teasers/">Go Brain Teasers</a></li>
-</ol>
-    </section>
-</article>
-
-<comment>
-
-    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
-        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
-        data-theme="light" data-lang="en" crossorigin="anonymous" async>
-        </script>
-
-    <script type="text/javascript" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
-
-</comment>]]></summary>
+</ol></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+]]></summary>
 </entry>
 <entry>
     <title>如何在Hakyll中產生slide shows</title>
@@ -423,16 +366,12 @@
     <id>https://onemouth.github.io/posts/2022-05-15-hakyll-html5-slides.html</id>
     <published>2022-05-15T00:00:00Z</published>
     <updated>2022-05-15T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <h1>如何在Hakyll中產生slide shows</h1>
-    <section class="header">
-        Posted on May 15, 2022
-        
-        by LT
-        
-    </section>
-    <section>
-        <p>我們不只可以讓Hykyll產生HTML網頁，得利於Hakyll背後的<a href="https://pandoc.org/">Pandoc</a>的強大能力，只要是Pandoc支援的格式，其實都可以輸出。</p>
+    <summary type="html"><![CDATA[<div><article><h1>如何在Hakyll中產生slide shows</h1><section class="header">
+Posted on May 15, 2022
+
+by LT
+
+</section><section><p>我們不只可以讓Hykyll產生HTML網頁，得利於Hakyll背後的<a href="https://pandoc.org/">Pandoc</a>的強大能力，只要是Pandoc支援的格式，其實都可以輸出。</p>
 <p>Pandoc支援許多種Slide格式，像是Slidy，reveal.js，DZSlides 等等。這篇blog主要會介紹如何讓Hakyll產生reveal.js的格式。</p>
 <p>在開始之前，我們要先看一下，在Hakyll裡面，一個Item的pandoc compile的流程大致是怎麼的。</p>
 <h2 id="pandoc-compile-流程">Pandoc Compile 流程</h2>
@@ -480,23 +419,8 @@
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> writePandocToRevealJs</span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/revealjs.html&quot;</span> postCtx</span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> relativizeUrls</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span></code></pre></div>
-    </section>
-</article>
-
-<comment>
-
-    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
-        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
-        data-theme="light" data-lang="en" crossorigin="anonymous" async>
-        </script>
-
-    <script type="text/javascript" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
-
-</comment>]]></summary>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+]]></summary>
 </entry>
 <entry>
     <title>如何在Hakyll中設定Atom/RSS Feed</title>
@@ -504,16 +428,12 @@
     <id>https://onemouth.github.io/posts/2022-05-06-hakyll-atom-setup.html</id>
     <published>2022-05-06T00:00:00Z</published>
     <updated>2022-05-06T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <h1>如何在Hakyll中設定Atom/RSS Feed</h1>
-    <section class="header">
-        Posted on May  6, 2022
-        
-        by LT
-        
-    </section>
-    <section>
-        <p>首先這是產生Atom Feed 的function：</p>
+    <summary type="html"><![CDATA[<div><article><h1>如何在Hakyll中設定Atom/RSS Feed</h1><section class="header">
+Posted on May  6, 2022
+
+by LT
+
+</section><section><p>首先這是產生Atom Feed 的function：</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ot">renderAtom ::</span> <span class="dt">FeedConfiguration</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>           <span class="ot">-&gt;</span> <span class="dt">Context</span> <span class="dt">String</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>           <span class="ot">-&gt;</span> [<span class="dt">Item</span> <span class="dt">String</span>]</span>
@@ -565,23 +485,8 @@
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    route idRoute</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    compile <span class="op">$</span> <span class="kw">do</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>      posts <span class="ot">&lt;-</span> <span class="fu">fmap</span> (<span class="fu">take</span> <span class="dv">15</span>) <span class="op">.</span> recentFirst <span class="op">=&lt;&lt;</span> loadAllSnapshots <span class="st">&quot;posts/*&quot;</span> <span class="st">&quot;content&quot;</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      renderAtom feedConfiguration feedCtx posts</span></code></pre></div>
-    </section>
-</article>
-
-<comment>
-
-    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
-        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
-        data-theme="light" data-lang="en" crossorigin="anonymous" async>
-        </script>
-
-    <script type="text/javascript" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
-
-</comment>]]></summary>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      renderAtom feedConfiguration feedCtx posts</span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+]]></summary>
 </entry>
 <entry>
     <title>iCloud上的酷東西-自訂電子郵件網域</title>
@@ -589,16 +494,12 @@
     <id>https://onemouth.github.io/posts/2022-05-03-icloud-cool-things.html</id>
     <published>2022-05-03T00:00:00Z</published>
     <updated>2022-05-03T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <h1>iCloud上的酷東西-自訂電子郵件網域</h1>
-    <section class="header">
-        Posted on May  3, 2022
-        
-        by LT
-        
-    </section>
-    <section>
-        <p>從2019開始就開始訂閱iCloud的儲存空間200G，因為免費的5GB實在不夠，加上可以和家人共享，就一直訂閱著，平常也不會去注意它有什麼新功能。</p>
+    <summary type="html"><![CDATA[<div><article><h1>iCloud上的酷東西-自訂電子郵件網域</h1><section class="header">
+Posted on May  3, 2022
+
+by LT
+
+</section><section><p>從2019開始就開始訂閱iCloud的儲存空間200G，因為免費的5GB實在不夠，加上可以和家人共享，就一直訂閱著，平常也不會去注意它有什麼新功能。</p>
 <p>最近才發現，這個訂閱服務早在2021就變成了<a href="https://support.apple.com/zh-tw/HT201238">iCloud Plus</a>，主要增加了幾個功能:</p>
 <ul>
 <li>隱藏我的電子郵件</li>
@@ -609,23 +510,8 @@
 <p>當然也可以考慮自己架，收信似乎不難，但是寄信非常容易被當成垃圾郵件丟掉，要設定好<a href="https://en.wikipedia.org/wiki/Sender_Policy_Framework">SPF</a>，<a href="https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail">DKIM</a>和<a href="https://en.wikipedia.org/wiki/DMARC">DMARC</a>之類東西的樣子…所以網路上建議寄信的話再轉給Amazon SES處理，想想還是蠻複雜的。</p>
 <p>雲端服務的話，Gmail只有企業版才提供自訂網域的功能，其他像<a href="https://protonmail.com/support/knowledge-base/paid-plans/">ProtonMail</a>雖然在付費版也有提供自訂網域，但每個月還要再多付約100元台幣訂閱，想了想，還是用iCloud Plus的就好，畢竟加量不加價！</p>
 <p>我的email： lt at ltt.pw</p>
-<p>請多指教!</p>
-    </section>
-</article>
-
-<comment>
-
-    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
-        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
-        data-theme="light" data-lang="en" crossorigin="anonymous" async>
-        </script>
-
-    <script type="text/javascript" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
-
-</comment>]]></summary>
+<p>請多指教!</p></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+]]></summary>
 </entry>
 <entry>
     <title>10隻老鼠和1000個瓶子，其中一瓶有毒藥</title>
@@ -633,16 +519,12 @@
     <id>https://onemouth.github.io/posts/2022-03-12-poision-and-rats.html</id>
     <published>2022-03-12T00:00:00Z</published>
     <updated>2022-03-12T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <h1>10隻老鼠和1000個瓶子，其中一瓶有毒藥</h1>
-    <section class="header">
-        Posted on March 12, 2022
-        
-        by LT
-        
-    </section>
-    <section>
-        <p>現在有10隻老鼠和1000個瓶子，其中一瓶有毒藥，另外999瓶裡面是普通的水。從外觀上分辨不出水和毒藥。喝下毒藥的生物會在一星期之後死亡，你如何利用手上的老鼠，在一星期之後，正確回答那個瓶子裡面裝的是毒藥？</p>
+    <summary type="html"><![CDATA[<div><article><h1>10隻老鼠和1000個瓶子，其中一瓶有毒藥</h1><section class="header">
+Posted on March 12, 2022
+
+by LT
+
+</section><section><p>現在有10隻老鼠和1000個瓶子，其中一瓶有毒藥，另外999瓶裡面是普通的水。從外觀上分辨不出水和毒藥。喝下毒藥的生物會在一星期之後死亡，你如何利用手上的老鼠，在一星期之後，正確回答那個瓶子裡面裝的是毒藥？</p>
 <p>這是我在面試的時候，被實際問到的問題，當下因為第一個想法是想用binary search來做，但用binary search的話，需要多次實驗，沒辦法在一星期之後立刻得到結果，所以在沒得到進一步提示的情況下，就卡住了。</p>
 <p>上網找了一下，似乎也是一道經典題了。我們先把問題簡化一下，假設現在是3隻老鼠和8個瓶子，其中一瓶有毒藥，要如何在一星期後找出來呢？</p>
 <p>因為我們現在手上有3隻老鼠，假設編號為<code>A</code>,<code>B</code>,<code>C</code>，然後我們用<code>1</code>代表老鼠死亡，用<code>0</code>代表老鼠存活，在一星期之後全部老鼠的存活情形如下：</p>
@@ -700,23 +582,8 @@
 </table>
 <p>也就是說，老鼠的死活情形，剛好有8種 (2^3)，所以我們可以試著把這8種情形對應到8個瓶子上，假如三隻老鼠都活著，那就是第一個瓶子有毒藥，假如三隻都死了，那就是第八個瓶子有毒藥，以此類推。</p>
 <p>從這個表，由上往下，就是3隻老鼠個別需要喝的瓶子，<code>A</code>老鼠需要喝第5,6,7,8號瓶子，<code>B</code>老鼠需要喝3,4,7,8號瓶子，<code>C</code>老鼠則需要喝2,4,6,8號瓶子。</p>
-<p>這是3隻老鼠的情形，瞭解之後，要推廣到10隻老鼠的情形也很容易了！</p>
-    </section>
-</article>
-
-<comment>
-
-    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
-        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
-        data-theme="light" data-lang="en" crossorigin="anonymous" async>
-        </script>
-
-    <script type="text/javascript" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
-
-</comment>]]></summary>
+<p>這是3隻老鼠的情形，瞭解之後，要推廣到10隻老鼠的情形也很容易了！</p></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+]]></summary>
 </entry>
 <entry>
     <title>三個學日文必備的瀏覽器擴充套件</title>
@@ -724,16 +591,12 @@
     <id>https://onemouth.github.io/posts/2022-03-10-japanese-plugins.html</id>
     <published>2022-03-10T00:00:00Z</published>
     <updated>2022-03-10T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<article>
-    <h1>三個學日文必備的瀏覽器擴充套件</h1>
-    <section class="header">
-        Posted on March 10, 2022
-        
-        by LT
-        
-    </section>
-    <section>
-        <div class="toc"><div class="header">Table of Contents</div>
+    <summary type="html"><![CDATA[<div><article><h1>三個學日文必備的瀏覽器擴充套件</h1><section class="header">
+Posted on March 10, 2022
+
+by LT
+
+</section><section><div class="toc"><div class="header">Table of Contents</div>
 <ul>
 <li><a href="#yomichan"><span class="toc-section-number">1</span> Yomichan</a></li>
 <li><a href="#absolute-enable-right-click-copy"><span class="toc-section-number">2</span> Absolute Enable Right Click &amp; Copy</a></li>
@@ -773,23 +636,8 @@
 <p>安裝完後，在Google的搜尋頁面，會多出一個Location的按鈕，只要點下去，就可以選擇要轉換的地區和語言了，是不是很方便！</p>
 <h1 data-number="4" id="小結"><span class="header-section-number">4</span> 小結</h1>
 <p>這是我最近覺得非介紹不可的擴充功能，有其它好用的擴充功能，也請推薦！</p>
-
-    </section>
-</article>
-
-<comment>
-
-    <script src="https://giscus.app/client.js" data-repo="onemouth/onemouth.github.io"
-        data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg"
-        data-mapping="pathname" data-reactions-enabled="0" data-emit-metadata="0" data-input-position="top"
-        data-theme="light" data-lang="en" crossorigin="anonymous" async>
-        </script>
-
-    <script type="text/javascript" async
-        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
-
-</comment>]]></summary>
+</section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+]]></summary>
 </entry>
 
 </feed>
