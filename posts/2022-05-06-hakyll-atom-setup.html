@@ -1,23 +1,24 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
-
 <meta content="hakyll" name="keywords" />
-
-
-<meta content="how to produce an atom/rss feed by Hakyll" name="description" />
-
-<title>Put some ink into the inkpot - 如何在Hakyll中設定Atom/RSS Feed</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="../css/default.css" rel="stylesheet" /><link href="../css/table.css" rel="stylesheet" /><link href="../css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="../">Put some ink into the inkpot</a></div><nav><a href="../">Home</a><a href="../archive.html">Archive</a></nav></header><main><div><article><h1>如何在Hakyll中設定Atom/RSS Feed</h1><section class="header">
-Posted on May  6, 2022
-
+<meta content="how to produce an atom/rss feed by
+Hakyll" name="description" />
+<title>Put some ink into the inkpot - 如何在Hakyll中設定Atom/RSS
+Feed</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>如何在Hakyll中設定Atom/RSS
+Feed</h1><section class="header">
+Posted on 2022-05-06
 by LT
-
 </section><section><p>首先這是產生Atom Feed 的function：</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ot">renderAtom ::</span> <span class="dt">FeedConfiguration</span></span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ot">renderAtom ::</span> <span class="dt">FeedConfiguration</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>           <span class="ot">-&gt;</span> <span class="dt">Context</span> <span class="dt">String</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>           <span class="ot">-&gt;</span> [<span class="dt">Item</span> <span class="dt">String</span>]</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>           <span class="ot">-&gt;</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</span></code></pre></div>
-<p>從function signature 可以猜出來，第一個參數是關於Configuration，第二個參數我們先不管它，第三個參數是<code>[Item String]</code>，也就是我們要產生Feed的主要內容。因為<code>renderAtom</code>的返回值是一個<code>Compiler (Item String)</code>，所以我們可以直接傳給compiler function：</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
+<p>從function signature
+可以猜出來，第一個參數是關於Configuration，第二個參數我們先不管它，第三個參數是<code>[Item String]</code>，也就是我們要產生Feed的主要內容。因為<code>renderAtom</code>的返回值是一個<code>Compiler (Item String)</code>，所以我們可以直接傳給compiler
+function：</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  match <span class="st">&quot;posts/*&quot;</span> <span class="op">$</span> <span class="kw">do</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    route <span class="op">$</span> setExtension <span class="st">&quot;html&quot;</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    compile <span class="op">$</span> pandocCompiler</span>
@@ -41,8 +42,10 @@ by LT
 <span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>     feedAuthorEmail <span class="ot">=</span> <span class="st">&quot;lt@ltt.pw&quot;</span>,</span>
 <span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>     feedRoot <span class="ot">=</span> <span class="st">&quot;https://onemouth.github.io&quot;</span></span>
 <span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>   }</span></code></pre></div>
-<p>那我們現在就只剩下第二個參數<code>Context String</code>了，首先我們要知道，在Hakyll中，<code>Context</code>代表的是很多key-value所形成的一個集合。此外， <code>Context</code>是一個Monoid，所以用<code>mappend</code>就可以新增key-value到<code>Conxtext</code>裡面。而當template需要某一個key的值，就可以從<code>Context</code>中獲得。</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ot">postCtx ::</span> <span class="dt">Context</span> <span class="dt">String</span></span>
+<p>那我們現在就只剩下第二個參數<code>Context String</code>了，首先我們要知道，在Hakyll中，<code>Context</code>代表的是很多key-value所形成的一個集合。此外，
+<code>Context</code>是一個Monoid，所以用<code>mappend</code>就可以新增key-value到<code>Conxtext</code>裡面。而當template需要某一個key的值，就可以從<code>Context</code>中獲得。</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ot">postCtx ::</span> <span class="dt">Context</span> <span class="dt">String</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>postCtx <span class="ot">=</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  dateField <span class="st">&quot;date&quot;</span> <span class="st">&quot;%B %e, %Y&quot;</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="ot">`mappend`</span> defaultContext</span>
@@ -56,12 +59,13 @@ by LT
 <li><code>$path$</code>: Item 的原始檔案路徑</li>
 <li><code>$foo$</code>: 任何包括在Metadata中的資料</li>
 </ul>
-<p>defaultContext 並不包含date的資訊，所以我們用<code>dateField</code>把寫在檔案路徑的日期parse出來，並放在<code>postCtx</code>裡面。</p>
+<p>defaultContext
+並不包含date的資訊，所以我們用<code>dateField</code>把寫在檔案路徑的日期parse出來，並放在<code>postCtx</code>裡面。</p>
 <p>另外，在feed的預設template裡面，需要一個description的key，而在目前大部分RSS的網站實作中，description都是直接放文章的完整內容，所以這邊我們用<code>bodyField</code>，把description指向body的內容。</p>
 <p>最後，我們產生Feed的程式碼就像這樣：</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>  create [<span class="st">&quot;atom.xml&quot;</span>] <span class="op">$</span> <span class="kw">do</span></span>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>  create [<span class="st">&quot;atom.xml&quot;</span>] <span class="op">$</span> <span class="kw">do</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    route idRoute</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    compile <span class="op">$</span> <span class="kw">do</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>      posts <span class="ot">&lt;-</span> <span class="fu">fmap</span> (<span class="fu">take</span> <span class="dv">15</span>) <span class="op">.</span> recentFirst <span class="op">=&lt;&lt;</span> loadAllSnapshots <span class="st">&quot;posts/*&quot;</span> <span class="st">&quot;content&quot;</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      renderAtom feedConfiguration feedCtx posts</span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
-</main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      renderAtom feedConfiguration feedCtx posts</span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>

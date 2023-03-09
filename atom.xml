@@ -15,53 +15,41 @@
     <id>https://onemouth.github.io/posts/2023-01-02-consistent-hash.html</id>
     <published>2023-01-02T00:00:00Z</published>
     <updated>2023-01-02T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div><article><h1>Consistent Hashing (和其他類似演算法)</h1><section class="header">
+    <summary type="html"><![CDATA[<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
+
+<meta content="distributed_system, cache" name="keywords" />
+
+
+<meta content="an overview of consistent hashing" name="description" />
+
+<title>Put some ink into the inkpot - Consistent Hashing (和其他類似演算法)</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>Consistent Hashing (和其他類似演算法)</h1><section class="header">
 Posted on January  2, 2023
 
 by LT
 
-</section><section><div class="toc"><div class="header">Table of Contents</div>
-<ul>
-<li><a href="#問題1-平均分配"><span class="toc-section-number">1</span> 問題1: 平均分配</a>
-<ul>
-<li><a href="#方法取餘數法-mod-n"><span class="toc-section-number">1.1</span> 方法：取餘數法 (mod N)</a></li>
-</ul></li>
-<li><a href="#問題2-動態增減機器"><span class="toc-section-number">2</span> 問題2: 動態增減機器</a>
-<ul>
-<li><a href="#ring-based-consistent-hash"><span class="toc-section-number">2.1</span> Ring-based Consistent Hash</a></li>
-<li><a href="#jump-consistent-hash"><span class="toc-section-number">2.2</span> Jump Consistent Hash</a></li>
-</ul></li>
-<li><a href="#問題3hot-key-rebalance"><span class="toc-section-number">3</span> 問題3：hot key (rebalance)</a>
-<ul>
-<li><a href="#etsy-casecache-smearing"><span class="toc-section-number">3.1</span> Etsy case：cache smearing</a></li>
-<li><a href="#redis-cluster-hash-slots"><span class="toc-section-number">3.2</span> Redis Cluster: Hash Slots</a></li>
-<li><a href="#consistent-hashing-with-bounded-loads"><span class="toc-section-number">3.3</span> Consistent Hashing with Bounded Loads</a></li>
-</ul></li>
-<li><a href="#結語"><span class="toc-section-number">4</span> 結語</a></li>
-</ul>
-</div>
-<p><em>主要從之前在17 Live的內部分享過的投影片整理出內容。</em></p>
-<h1 data-number="1" id="問題1-平均分配"><span class="header-section-number">1</span> 問題1: 平均分配</h1>
+</section><section><p><em>主要從之前在17 Live的內部分享過的投影片整理出內容。</em></p>
+<h1 id="問題1-平均分配">問題1: 平均分配</h1>
 <p>假設我們有巨量的資料要處理，一台機器是處理不來的，所以我們需要很多很多台機器(N台)來處理，那接下來的問題就是，要怎麼把這些資料平均分配給這N台機器來處理？</p>
 <p>為了具象化這個情境(但不失一般性)，以下都假設我們使用了N台 cache server (<code>memcahed</code>)，這些server的編號從0, 1, 2, … 到 N-1 。然後每筆資料都有其獨一無二的<code>key</code>。</p>
 <p>所以，我們需要一個好的hash function，這個hash function會把 <code>key</code> 平均對應到 0 到 N-1 的正整數。</p>
-<h2 data-number="1.1" id="方法取餘數法-mod-n"><span class="header-section-number">1.1</span> 方法：取餘數法 (mod N)</h2>
+<h2 id="方法取餘數法-mod-n">方法：取餘數法 (mod N)</h2>
 <p><code>Hash(key) mod N</code> ，這個結果必為 0 到 N-1 的數，也就決定了要讓哪台server來處理。</p>
 <p>這個方法簡單粗暴，缺點是 mod N 的平均分配效果取決於N本身的一些性質(是否為質數等等)，但在實務上應該也是堪用了。</p>
-<h1 data-number="2" id="問題2-動態增減機器"><span class="header-section-number">2</span> 問題2: 動態增減機器</h1>
+<h1 id="問題2-動態增減機器">問題2: 動態增減機器</h1>
 <p>當資料量增加的時候，我們必須增加足夠的機器去處理，當資料量減少的時候，我們當然也希望減少機器以節省成本。在我們cache server的情境中，我們最不想看到的就是當增減機器的時候，產生大量的cache miss，所以我們定義以下的需求：</p>
 <p>對一個N台機器的cluster，增減一台機器的時候，只能影響約<code>1/N+1</code>的 cache key</p>
 <p>舉例來說，假如原先有4台機器。而現在要變成5台機器，那新的那台機器，要負責<code>1/5</code>的資料量，而且這<code>1/5</code>資料量的來源，要平均的來自其他4台機器。</p>
 <p>取餘數法在這個情境是不適用的，因為當server的數量從N變到N+1，幾乎大部分cache key所對應到server都會有所改變，無法達到只影響1/N的需求。</p>
 <p>也就是說，我們需要一個consistent的 hash function，當N變成N+1的時候，大部分的 key 對應的編號都是不變的，只改變了其中約 1/N 的key的編號。</p>
-<h2 data-number="2.1" id="ring-based-consistent-hash"><span class="header-section-number">2.1</span> Ring-based Consistent Hash</h2>
-<h3 data-number="2.1.1" id="歷史"><span class="header-section-number">2.1.1</span> 歷史</h3>
+<h2 id="ring-based-consistent-hash">Ring-based Consistent Hash</h2>
+<h3 id="歷史">歷史</h3>
 <p>Akamai 公司在1997年的時候，發表了: <a href="https://www.akamai.com/site/en/documents/research-paper/consistent-hashing-and-random-trees-distributed-caching-protocols-for-relieving-hot-spots-on-the-world-wide-web-technical-publication.pdf">Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web</a>。</p>
 <p>到了2007年，Amazon的DynamoDB，在DB partitioning的部分，提到他們使用了consistent hash 的演算法；而在同年，last.fm 的工程師發表了著名的 <a href="https://github.com/RJ/ketama">Ketama</a> 實現，之後 consistent hash 就被廣泛運用到web backend的各個領域了。</p>
-<h3 data-number="2.1.2" id="概念"><span class="header-section-number">2.1.2</span> 概念</h3>
+<h3 id="概念">概念</h3>
 <p>Ring-based的想法首先是把Hash function 的output想成一個環，然後每個server負責這個環的一部分(守備範圍)，如圖所示： <img src="../images/ring.png" /> <img src="../images/ring_2.png" /> 假如我們需要多一台server的話，因為不想要影響太多原有的守備範圍，可能會想把這個新server插在某兩個server的中間，但假如這個做的話，會很明顯的看出server loading不一致的問題。 <img src="../images/ring_3.png" /> <em>server5 和 server1 的 loading是其他server的一半</em></p>
 <p>接下來，我們引進virtual node 的概念來解決這個問題，想像每個server各自對應到n個環上的virtual node，這些virtual node平均的分佈在環上，當我們新增刪除server的時候，就是把一大串對應的virtual node新增刪除而已，因為virtual node是平均分佈的，所以對loading影響不大，也不會讓每個server的守備範圍有大幅變動。</p>
-<h3 data-number="2.1.3" id="實現"><span class="header-section-number">2.1.3</span> 實現</h3>
+<h3 id="實現">實現</h3>
 <p>試著理解code的話，可以對整個演算法有更好的掌握。</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>Map<span class="op">)</span> Add<span class="op">(</span>nodes <span class="op">...</span><span class="dt">string</span><span class="op">)</span> <span class="op">{</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -98,7 +86,7 @@ by LT
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>給定一個 key，如何找到要處理這個key的Server呢？在這個<code>Get</code> function裡，我們可以看到，就是做<a href="https://pkg.go.dev/sort#Search">binary search</a>，找到最接近的virtual node，再透過hashMap反查回實體server。</p>
 <p>以上code來自於<a href="https://github.com/serialx/hashring">https://github.com/serialx/hashring</a></p>
-<h2 data-number="2.2" id="jump-consistent-hash"><span class="header-section-number">2.2</span> Jump Consistent Hash</h2>
+<h2 id="jump-consistent-hash">Jump Consistent Hash</h2>
 <p>Google在2014年的時候，提出了<a href="https://arxiv.org/ftp/arxiv/papers/1406/1406.2294.pdf">Jump Consistent Hash</a>，巧妙的利用了<a href="https://en.wikipedia.org/wiki/Reservoir_sampling">水塘抽樣(Reservoir sampling)</a>的概念，設計出了一個相較於Ring-based，更快，記憶體使用量更少的Consistent Hash。</p>
 <p>首先我們先用<a href="https://leetcode.com/problems/linked-list-random-node/description/">Leetcode 382: Linked List Random Node</a>，來解釋水塘抽樣的概念。現在我們有一個未知長度的singly linked list，需要從這個linked list中，隨機的返回其中一個node的值，而且，選擇任何一個node的機率都要是一樣的。此外，我們需要這個演算法是1-pass，且space complexity 為常數。</p>
 <p>因此，我們可以利用隨機演算法的力量：</p>
@@ -161,22 +149,22 @@ by LT
 <span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> b<span class="op">;</span></span>
 <span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<h3 data-number="2.2.1" id="缺點"><span class="header-section-number">2.2.1</span> 缺點</h3>
+<h3 id="缺點">缺點</h3>
 <p>Jump Consistent Hash 有著簡潔的實現，從機率上也得到更好的均勻分布，但在實務上，它還是有著一些缺點：首先，必須保存一個 server name 對 index 的對應，因為在consistent hash中，server一律是用number來表示的。</p>
 <p>接下來要從中間移除一個server是不可行的，因為這樣會讓編號中間空出一個，我們對中間的node只能做replace，而新增刪除node只能從尾端(tail)做起。相對來說，Ring-based Consistent Hash 只是去移除對應的 virtual nodes，就彈性了許多。</p>
 <p>從這點考慮，Jump Consistent Hash 比較適合node 不會劇烈改變的環境，例如database storage。</p>
-<h1 data-number="3" id="問題3hot-key-rebalance"><span class="header-section-number">3</span> 問題3：hot key (rebalance)</h1>
+<h1 id="問題3hot-key-rebalance">問題3：hot key (rebalance)</h1>
 <p>在之前的故事中，我們成功的把key一視同仁的分散到每個機器去處理了，可惜的是，在真實世界中，有些key就是比其他的key熱門，這些hot key的存在，會讓部分cache server的loading遠高於其他server，因此，我們必須做適當的rebalance，再次分散存在hot key的server的loading。</p>
-<h2 data-number="3.1" id="etsy-casecache-smearing"><span class="header-section-number">3.1</span> Etsy case：cache smearing</h2>
+<h2 id="etsy-casecache-smearing">Etsy case：cache smearing</h2>
 <p>Etsy 在這篇<a href="https://www.etsy.com/codeascraft/how-etsy-caches">How Etsy caches: hashing, Ketama, and cache smearing</a>中，解釋了他們如何處理在 memcached cluster 遇到的 hot key 問題。</p>
 <p>Etsy使用了consistent hash，將要做http cache的資料分散給不同memcached server去處理，可以想見的是，有些http頁面就是比其他頁面還要熱門許多，所以產生了hot key 問題。</p>
 <p>對於hot key問題，Etsy使用了一種他們稱為cache smearing的技巧，這個技巧是這樣的：假如現在我們已經知道有一個hot key為<code>popular_key</code>，我們就把這個key duplicate幾份：<code>popular_key_1, popular_key_2, popular_key_3... popular_key_16 </code>，這些key全部對應到相同的內容，也就是將1個hot key變成多個key，處理hot key內容的server變多了，也就減緩了hot key帶來的影響。</p>
 <p>在實務上，Etsy使用mctop去監控memcached cluster，並將觀測到的hot key手動加入到一個cache smearing清單裡。</p>
-<h2 data-number="3.2" id="redis-cluster-hash-slots"><span class="header-section-number">3.2</span> Redis Cluster: Hash Slots</h2>
+<h2 id="redis-cluster-hash-slots">Redis Cluster: Hash Slots</h2>
 <p>在Redis Cluster 的架構中，Redis 提出了一種更加彈性的作法(但也需要更多的人為操作)。</p>
 <p>首先，Redis利用CRC演算法，劃分出了16384個<strong>slots</strong>，也就是說，每一個cache_key經過CRC演算法後，就可以知道要由哪一個slot負責處理。重點是這些slots是虛擬的，使用者可以進一步控制哪些slots要由哪些實體機器來處理，</p>
 <p>也就是說，當我們觀測到hot key問題的時候，是可以藉由手動重新分配slots到不同的機器上來解決的。</p>
-<h2 data-number="3.3" id="consistent-hashing-with-bounded-loads"><span class="header-section-number">3.3</span> Consistent Hashing with Bounded Loads</h2>
+<h2 id="consistent-hashing-with-bounded-loads">Consistent Hashing with Bounded Loads</h2>
 <p>對於 hot key 問題，Google 提出了另外一種作法：<a href="https://ai.googleblog.com/2017/04/consistent-hashing-with-bounded-loads.html">Consistent Hashing with Bounded Loads</a>。</p>
 <p>這個作法是基於ring-based consistent hash：首先我們監控每台server的loading，並設置每台server的loading上限，現在假設這個上限是125%，當有一台server A他的loading超過每台server平均的loading百分之25的時候，就會啟動bounded loads的機制。</p>
 <p>這個機制就是，接下來原本要給A處理的key，會轉給沿著ring順時鐘方向，下一個virtual node對應的實體server來處理，藉此來分散loading。</p>
@@ -187,15 +175,14 @@ by LT
 <li>對不同key來說，它的fallback server是不一樣的。</li>
 </ol>
 <p>Vimeo 把這個演算法實作在 HAProxy 上，作為其load balancer機制的其中一個選項。根據Vimeo的<a href="https://medium.com/vimeo-engineering-blog/improving-load-balancing-with-a-new-consistent-hashing-algorithm-9f1bd75709ed">測試</a>，loading上限設置在125%～200%中，都有不錯的效果。</p>
-<h1 data-number="4" id="結語"><span class="header-section-number">4</span> 結語</h1>
+<h1 id="結語">結語</h1>
 <p>這篇文章主要介紹了 consitent hash 的概念，以及相關的演算法，如以下：</p>
 <ul>
 <li>ring-based consitent hashing</li>
 <li>jump consistent hashing</li>
 <li>redis hash slots</li>
 <li>consistent hash with bounded loads</li>
-</ul>
-</section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+</ul></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
 ]]></summary>
 </entry>
 <entry>
@@ -204,30 +191,24 @@ by LT
     <id>https://onemouth.github.io/posts/2022-09-20-golang-errors.html</id>
     <published>2022-09-20T00:00:00Z</published>
     <updated>2022-09-20T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div><article><h1>設計 Golang 的 error</h1><section class="header">
+    <summary type="html"><![CDATA[<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
+
+<meta content="golang, error_handling" name="keywords" />
+
+
+<meta content="how to design error in golang" name="description" />
+
+<title>Put some ink into the inkpot - 設計 Golang 的 error</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>設計 Golang 的 error</h1><section class="header">
 Posted on September 20, 2022
 
 by LT
 
-</section><section><div class="toc"><div class="header">Table of Contents</div>
-<ul>
-<li><a href="#package-內部產生的-error"><span class="toc-section-number">1</span> package 內部產生的 error</a>
-<ul>
-<li><a href="#sentinel-error"><span class="toc-section-number">1.1</span> Sentinel Error</a></li>
-<li><a href="#定義一個-error-type"><span class="toc-section-number">1.2</span> 定義一個 error type</a></li>
-</ul></li>
-<li><a href="#需要包裝wrap其他error"><span class="toc-section-number">2</span> 需要包裝(Wrap)其他error</a>
-<ul>
-<li><a href="#定義一個-struct"><span class="toc-section-number">2.1</span> 定義一個 struct</a></li>
-</ul></li>
-<li><a href="#結語"><span class="toc-section-number">3</span> 結語</a></li>
-</ul>
-</div>
-<p>在 Go 裡面，主要用來處理 error 的方法，是利用在 Go 1.13 時新引入的這兩個函式：<a href="https://pkg.go.dev/errors#Is">errors.Is</a> 和 <a href="https://pkg.go.dev/errors#As">errors.As</a>。在本文，想要探討如何設計好的error type，才能和 Go 標準庫提供的這兩個函數配合的天衣無縫。</p>
+</section><section><p>在 Go 裡面，主要用來處理 error 的方法，是利用在 Go 1.13 時新引入的這兩個函式：<a href="https://pkg.go.dev/errors#Is">errors.Is</a> 和 <a href="https://pkg.go.dev/errors#As">errors.As</a>。在本文，想要探討如何設計好的error type，才能和 Go 標準庫提供的這兩個函數配合的天衣無縫。</p>
 <p>首先先把error大略分爲兩種，一種是沒有包裝其他error的，是我們的這個package內部產生的error，和其他package無關。另一種則是有包裝的，是在我們呼叫其他package的時候產生的error，因此必須保留這個上下文。</p>
 <p>以下來分別看一下兩種error的設計。</p>
-<h1 data-number="1" id="package-內部產生的-error"><span class="header-section-number">1</span> package 內部產生的 error</h1>
-<h2 data-number="1.1" id="sentinel-error"><span class="header-section-number">1.1</span> Sentinel Error</h2>
+<h1 id="package-內部產生的-error">package 內部產生的 error</h1>
+<h2 id="sentinel-error">Sentinel Error</h2>
 <p>這是最常見的，也在許多知名的package被廣泛使用。</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">package</span> example</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -241,7 +222,7 @@ by LT
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    fmt<span class="op">.</span>Println<span class="op">(</span><span class="st">&quot;do error handling)</span></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>sentinal error的好處是簡單，定義快速，又一目瞭然。缺點是定義了全域變數，還有在runtime才初始化。但這種形式是如此的常見，我想這些缺點不是大問題才是。</p>
-<h2 data-number="1.2" id="定義一個-error-type"><span class="header-section-number">1.2</span> 定義一個 error type</h2>
+<h2 id="定義一個-error-type">定義一個 error type</h2>
 <p>另一種常見的方法是定義一個 error type，這個type 會實作 <code>Error() string</code>。我們再利用這個 type，定義一些 const error。</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> InvalidFormatError <span class="dt">string</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -267,9 +248,9 @@ by LT
 <p>這種寫法的好處除了也支援 <code>errros.Is</code> 以外，我們還可以利用 <code>errors.As</code> 去判斷同一類的 error。</p>
 <p>例如在這個例子，ErrNoData 和 ErrLengthTooLong 都屬於 InvalidFormatError 這個type，所以假如只想知道這個 error 屬於 InvalidFormatError 這一類的話，就可以利用 errros.As 來做判斷。</p>
 <p>其他好處包括了不用定義全域變數，不用在runtime初始化。缺點則是寫法比較複雜。</p>
-<h1 data-number="2" id="需要包裝wrap其他error"><span class="header-section-number">2</span> 需要包裝(Wrap)其他error</h1>
+<h1 id="需要包裝wrap其他error">需要包裝(Wrap)其他error</h1>
 <p>在其他情況，我們的error需要包裝其他package的error。最簡單的方法是利用 <code>fmt.Errorf("%w", err)</code> 直接包裝。但我們也可以利用定義 struct 的方法，讓error的架構變得更清晰。</p>
-<h2 data-number="2.1" id="定義一個-struct"><span class="header-section-number">2.1</span> 定義一個 struct</h2>
+<h2 id="定義一個-struct">定義一個 struct</h2>
 <div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> myDBPkgError <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>	value <span class="dt">string</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>	err   <span class="dt">error</span></span>
@@ -300,9 +281,8 @@ by LT
 <span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>這個例子的重點是我們的struct定義了 <code>Unwrap()</code> 函式，利用這個函式，<code>erros.Is</code> 和 <code>errors.As</code> 才能正常運作，不只是嘗試match <code>badValueError{value: v, err: err}</code>這個eror，還會不斷的往下尋找是否有其他能對應的error。</p>
 <p>另一個我們可以定義的是<code>Is(target error) bool</code> 這個函式，他可以讓 <code>errors.Is</code> 使用，表示我們定義的這個error，其實跟另外某個error是相等的。</p>
-<h1 data-number="3" id="結語"><span class="header-section-number">3</span> 結語</h1>
-<p>在這篇文章中，探討了我在 Go 中常使用的error handling技巧，在1.13之後，Go本身提供的error handling機制，的確是更加成熟了。</p>
-</section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+<h1 id="結語">結語</h1>
+<p>在這篇文章中，探討了我在 Go 中常使用的error handling技巧，在1.13之後，Go本身提供的error handling機制，的確是更加成熟了。</p></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
 ]]></summary>
 </entry>
 <entry>
@@ -311,7 +291,15 @@ by LT
     <id>https://onemouth.github.io/posts/2022-07-14-go-empty-map.html</id>
     <published>2022-07-14T00:00:00Z</published>
     <updated>2022-07-14T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div><article><h1>[筆記] Go：Nil Map</h1><section class="header">
+    <summary type="html"><![CDATA[<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
+
+<meta content="golang" name="keywords" />
+
+
+<meta content="the bahavior of a nil map in golang" name="description" />
+
+<title>Put some ink into the inkpot - [筆記] Go：Nil Map</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>[筆記] Go：Nil Map</h1><section class="header">
 Posted on July 14, 2022
 
 by LT
@@ -357,7 +345,7 @@ by LT
 <h2 id="reference">Reference</h2>
 <ol type="1">
 <li><a href="https://pragprog.com/titles/d-gobrain/go-brain-teasers/">Go Brain Teasers</a></li>
-</ol></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+</ol></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
 ]]></summary>
 </entry>
 <entry>
@@ -366,7 +354,15 @@ by LT
     <id>https://onemouth.github.io/posts/2022-05-15-hakyll-html5-slides.html</id>
     <published>2022-05-15T00:00:00Z</published>
     <updated>2022-05-15T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div><article><h1>如何在Hakyll中產生slide shows</h1><section class="header">
+    <summary type="html"><![CDATA[<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
+
+<meta content="hakyll" name="keywords" />
+
+
+<meta content="how to produce html slides by Hakyll" name="description" />
+
+<title>Put some ink into the inkpot - 如何在Hakyll中產生slide shows</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>如何在Hakyll中產生slide shows</h1><section class="header">
 Posted on May 15, 2022
 
 by LT
@@ -419,7 +415,7 @@ by LT
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> writePandocToRevealJs</span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/revealjs.html&quot;</span> postCtx</span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> relativizeUrls</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
 ]]></summary>
 </entry>
 <entry>
@@ -428,7 +424,15 @@ by LT
     <id>https://onemouth.github.io/posts/2022-05-06-hakyll-atom-setup.html</id>
     <published>2022-05-06T00:00:00Z</published>
     <updated>2022-05-06T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div><article><h1>如何在Hakyll中設定Atom/RSS Feed</h1><section class="header">
+    <summary type="html"><![CDATA[<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
+
+<meta content="hakyll" name="keywords" />
+
+
+<meta content="how to produce an atom/rss feed by Hakyll" name="description" />
+
+<title>Put some ink into the inkpot - 如何在Hakyll中設定Atom/RSS Feed</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>如何在Hakyll中設定Atom/RSS Feed</h1><section class="header">
 Posted on May  6, 2022
 
 by LT
@@ -485,7 +489,7 @@ by LT
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    route idRoute</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    compile <span class="op">$</span> <span class="kw">do</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>      posts <span class="ot">&lt;-</span> <span class="fu">fmap</span> (<span class="fu">take</span> <span class="dv">15</span>) <span class="op">.</span> recentFirst <span class="op">=&lt;&lt;</span> loadAllSnapshots <span class="st">&quot;posts/*&quot;</span> <span class="st">&quot;content&quot;</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      renderAtom feedConfiguration feedCtx posts</span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      renderAtom feedConfiguration feedCtx posts</span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
 ]]></summary>
 </entry>
 <entry>
@@ -494,7 +498,15 @@ by LT
     <id>https://onemouth.github.io/posts/2022-05-03-icloud-cool-things.html</id>
     <published>2022-05-03T00:00:00Z</published>
     <updated>2022-05-03T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div><article><h1>iCloud上的酷東西-自訂電子郵件網域</h1><section class="header">
+    <summary type="html"><![CDATA[<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
+
+<meta content="icloud, email" name="keywords" />
+
+
+<meta content="在「iCloud 郵件」中使用自訂電子郵件網域" name="description" />
+
+<title>Put some ink into the inkpot - iCloud上的酷東西-自訂電子郵件網域</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>iCloud上的酷東西-自訂電子郵件網域</h1><section class="header">
 Posted on May  3, 2022
 
 by LT
@@ -510,7 +522,7 @@ by LT
 <p>當然也可以考慮自己架，收信似乎不難，但是寄信非常容易被當成垃圾郵件丟掉，要設定好<a href="https://en.wikipedia.org/wiki/Sender_Policy_Framework">SPF</a>，<a href="https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail">DKIM</a>和<a href="https://en.wikipedia.org/wiki/DMARC">DMARC</a>之類東西的樣子…所以網路上建議寄信的話再轉給Amazon SES處理，想想還是蠻複雜的。</p>
 <p>雲端服務的話，Gmail只有企業版才提供自訂網域的功能，其他像<a href="https://protonmail.com/support/knowledge-base/paid-plans/">ProtonMail</a>雖然在付費版也有提供自訂網域，但每個月還要再多付約100元台幣訂閱，想了想，還是用iCloud Plus的就好，畢竟加量不加價！</p>
 <p>我的email： lt at ltt.pw</p>
-<p>請多指教!</p></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+<p>請多指教!</p></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
 ]]></summary>
 </entry>
 <entry>
@@ -519,7 +531,15 @@ by LT
     <id>https://onemouth.github.io/posts/2022-03-12-poision-and-rats.html</id>
     <published>2022-03-12T00:00:00Z</published>
     <updated>2022-03-12T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div><article><h1>10隻老鼠和1000個瓶子，其中一瓶有毒藥</h1><section class="header">
+    <summary type="html"><![CDATA[<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
+
+<meta content="interview, math" name="keywords" />
+
+
+<meta content="10 rats and 1000 bottles, 1 bottle has poision" name="description" />
+
+<title>Put some ink into the inkpot - 10隻老鼠和1000個瓶子，其中一瓶有毒藥</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>10隻老鼠和1000個瓶子，其中一瓶有毒藥</h1><section class="header">
 Posted on March 12, 2022
 
 by LT
@@ -582,7 +602,7 @@ by LT
 </table>
 <p>也就是說，老鼠的死活情形，剛好有8種 (2^3)，所以我們可以試著把這8種情形對應到8個瓶子上，假如三隻老鼠都活著，那就是第一個瓶子有毒藥，假如三隻都死了，那就是第八個瓶子有毒藥，以此類推。</p>
 <p>從這個表，由上往下，就是3隻老鼠個別需要喝的瓶子，<code>A</code>老鼠需要喝第5,6,7,8號瓶子，<code>B</code>老鼠需要喝3,4,7,8號瓶子，<code>C</code>老鼠則需要喝2,4,6,8號瓶子。</p>
-<p>這是3隻老鼠的情形，瞭解之後，要推廣到10隻老鼠的情形也很容易了！</p></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+<p>這是3隻老鼠的情形，瞭解之後，要推廣到10隻老鼠的情形也很容易了！</p></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
 ]]></summary>
 </entry>
 <entry>
@@ -591,27 +611,27 @@ by LT
     <id>https://onemouth.github.io/posts/2022-03-10-japanese-plugins.html</id>
     <published>2022-03-10T00:00:00Z</published>
     <updated>2022-03-10T00:00:00Z</updated>
-    <summary type="html"><![CDATA[<div><article><h1>三個學日文必備的瀏覽器擴充套件</h1><section class="header">
+    <summary type="html"><![CDATA[<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta content="width=device-width, initial-scale=1" name="viewport" />
+
+<meta content="japanease, firefox, plugins, yomichan" name="keywords" />
+
+
+<meta content="3 plugins that everyone should know whey studying Japanease" name="description" />
+
+<title>Put some ink into the inkpot - 三個學日文必備的瀏覽器擴充套件</title><link href="https://unpkg.com/sakura.css/css/sakura.css" rel="stylesheet" type="text/css" /><link href="/css/default.css" rel="stylesheet" /><link href="/css/table.css" rel="stylesheet" /><link href="/css/hightlight.css" rel="stylesheet" /></head><body><header><div class="logo"><a href="/">Put some ink into the inkpot</a></div><nav><a href="/">Home</a><a href="/archive.html">Archive</a></nav></header><main><div><article><h1>三個學日文必備的瀏覽器擴充套件</h1><section class="header">
 Posted on March 10, 2022
 
 by LT
 
-</section><section><div class="toc"><div class="header">Table of Contents</div>
-<ul>
-<li><a href="#yomichan"><span class="toc-section-number">1</span> Yomichan</a></li>
-<li><a href="#absolute-enable-right-click-copy"><span class="toc-section-number">2</span> Absolute Enable Right Click &amp; Copy</a></li>
-<li><a href="#google-search---geolocation-language-change"><span class="toc-section-number">3</span> Google Search - Geolocation &amp; Language Change</a></li>
-<li><a href="#小結"><span class="toc-section-number">4</span> 小結</a></li>
-</ul>
-</div>
-<p>在學習日文的過程中，也慢慢地使用一些擴充套件來增進學習的效果，所以想介紹三個我覺得是必備的擴充套件。分別為:</p>
+</section><section><p>在學習日文的過程中，也慢慢地使用一些擴充套件來增進學習的效果，所以想介紹三個我覺得是必備的擴充套件。分別為:</p>
 <ul>
 <li>Yomichan (<a href="https://addons.mozilla.org/zh-TW/firefox/addon/yomichan/">Firefox</a>, <a href="https://chrome.google.com/webstore/detail/yomichan/ogmnaimimemjmbakcfefmnahgdfhfami">Chrome</a>)</li>
 <li>Absolute Enable Right Click &amp; Copy (<a href="https://addons.mozilla.org/zh-TW/firefox/addon/absolute-enable-right-click/">Firefox</a>, <a href="https://chrome.google.com/webstore/detail/absolute-enable-right-cli/jdocbkpgdakpekjlhemmfcncgdjeiika">Chrome</a>)</li>
 <li>Google Search - Geolocation &amp; Language Change (<a href="https://addons.mozilla.org/zh-TW/firefox/addon/googlesearchgeolocationlang/">Firefox</a>, <a href="https://chrome.google.com/webstore/detail/google-search-geolocation/gglakldnncaidfodbmpaodhdknnlkjbb">Chrome</a>)</li>
 </ul>
 <p>其中Yomichan是最重要的，它是我們主要用來查詢日文的工具，後面兩個則可以起到輔助的作用。</p>
-<h1 data-number="1" id="yomichan"><span class="header-section-number">1</span> Yomichan</h1>
+<h1 id="yomichan">Yomichan</h1>
 <p><a href="https://foosoft.net/projects/yomichan/">Yomichan</a>是一個可以幫助我們在看日文網頁的時候，查詢單字的擴充套件，只要選取網頁上的字，再按下Shift鍵，就可以顯示這個日文單字的意思，十分方便。</p>
 <p><img src="/images/yomichan.png" /></p>
 <p>在安裝完Yomichan之後，是沒有任何字典的，我們必須先手動下載字典檔後，再做一個匯入的動作。<a href="https://foosoft.net/projects/yomichan/#dictionaries">字典檔</a>可以在官網找到。</p>
@@ -625,18 +645,17 @@ by LT
 <p>這些字典下載下來之後，是一個zip檔，不需要解壓縮，直接到Yomichan的管理頁面匯入就可以使用了。</p>
 <p><img src="/images/yomichan2.png" /></p>
 <p>另外除了上述資源外，也可以匯入其它的自製字典檔，有興趣的人可以到這個<a href="https://learnjapanese.moe/">網站</a>找尋其他資源。</p>
-<h1 data-number="2" id="absolute-enable-right-click-copy"><span class="header-section-number">2</span> Absolute Enable Right Click &amp; Copy</h1>
+<h1 id="absolute-enable-right-click-copy">Absolute Enable Right Click &amp; Copy</h1>
 <p>有些網頁會禁止我們選取上面的文字，例如歌詞網站或是一些影音串流平台。不能選取的話，我們就不能利用Yomichan來幫忙閱讀了，這時候，就是這個擴充套件出場的時候了。</p>
 <p>在安裝之後，只要啟動這個擴充套件的<code>Enable Copy</code>功能，就可以在原本不能選取的網頁正常選取了！</p>
 <p><img src="/images/copyText.png" /></p>
-<h1 data-number="3" id="google-search---geolocation-language-change"><span class="header-section-number">3</span> Google Search - Geolocation &amp; Language Change</h1>
+<h1 id="google-search---geolocation-language-change">Google Search - Geolocation &amp; Language Change</h1>
 <p>不知道大家會不會跟我有一樣的困擾——覺得Google越來越難用，現在即使是搜尋英文單字或日文漢字，也總是一堆中文的內容農場網頁排在前面，實在蠻困擾的，想要找個在地的結果，卻幾乎找不到。</p>
 <p>還好，終於發現這個擴充功能，可以輕鬆的改變搜尋時候的地理位置和語言設定。</p>
 <p><img src="/images/location.png" /></p>
 <p>安裝完後，在Google的搜尋頁面，會多出一個Location的按鈕，只要點下去，就可以選擇要轉換的地區和語言了，是不是很方便！</p>
-<h1 data-number="4" id="小結"><span class="header-section-number">4</span> 小結</h1>
-<p>這是我最近覺得非介紹不可的擴充功能，有其它好用的擴充功能，也請推薦！</p>
-</section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div>
+<h1 id="小結">小結</h1>
+<p>這是我最近覺得非介紹不可的擴充功能，有其它好用的擴充功能，也請推薦！</p></section></article><comment><script async="async" crossorigin="anonymous" data-category-id="DIC_kwDOD5Bpa84COAIg" data-category="General" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-repo="onemouth/onemouth.github.io" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main><footer>Site proudly generated by<a href="http://jaspervdj.be/hakyll">Hakyll</a></footer></body></html>
 ]]></summary>
 </entry>
 
