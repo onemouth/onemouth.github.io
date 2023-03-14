@@ -1,683 +1,675 @@
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Put some ink into the inkpot</title><link href="https://onemouth.github.io/atom.xml" rel="self" /><link href="https://onemouth.github.io" /><id>https://onemouth.github.io/atom.xml</id><author><name>LT Tsai</name></author><updated>2023-03-14T02:35:15.527908Z</updated><entry><title>Consistent Hashing (和其他類似演算法)</title><link href="https://onemouth.github.io/posts/2023-01-02-consistent-hash.html" /><id>https://onemouth.github.io/posts/2023-01-02-consistent-hash.html</id><published>2023-01-02T12:00:00+08:00</published><updated>2023-01-02T12:00:00+08:00</updated><summary type="html">&lt;![CDATA[&lt;html lang=&quot;en&quot;&gt;&lt;body&gt;&lt;header&gt;&lt;div class=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Put some ink into the inkpot&lt;/a&gt;&lt;/div&gt;&lt;/header&gt;&lt;main&gt;&lt;div&gt;&lt;article&gt;&lt;h1&gt;Consistent
-Hashing (和其他類似演算法)&lt;/h1&gt;&lt;section class=&quot;header&quot;&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Put some ink into the inkpot</title><link href="https://onemouth.github.io/atom.xml" rel="self" /><link href="https://onemouth.github.io" /><id>https://onemouth.github.io/atom.xml</id><author><name>LT Tsai</name></author><updated>2023-03-14T13:16:55.230116Z</updated><entry><title>Consistent Hashing (和其他類似演算法)</title><link href="https://onemouth.github.io/posts/2023-01-02-consistent-hash.html" /><id>https://onemouth.github.io/posts/2023-01-02-consistent-hash.html</id><published>2023-01-02T12:00:00+08:00</published><updated>2023-01-02T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>Consistent
+Hashing (和其他類似演算法)</h1><section class="header">
 Posted on Jan 02, 2023
 by LT
-&lt;/section&gt;&lt;section&gt;&lt;div&gt;&lt;div class=&quot;toc&quot;&gt;&lt;div class=&quot;header&quot;&gt;Table of Contents&lt;/div&gt;&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#問題1-平均分配&quot; id=&quot;toc-問題1-平均分配&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;1&lt;/span&gt; 問題1: 平均分配&lt;/a&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#方法取餘數法-mod-n&quot; id=&quot;toc-方法取餘數法-mod-n&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;1.1&lt;/span&gt; 方法：取餘數法 (mod N)&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#問題2-動態增減機器&quot; id=&quot;toc-問題2-動態增減機器&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;2&lt;/span&gt; 問題2: 動態增減機器&lt;/a&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#ring-based-consistent-hash&quot; id=&quot;toc-ring-based-consistent-hash&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;2.1&lt;/span&gt; Ring-based Consistent
-Hash&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#jump-consistent-hash&quot; id=&quot;toc-jump-consistent-hash&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;2.2&lt;/span&gt; Jump Consistent Hash&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#問題3hot-key-rebalance&quot; id=&quot;toc-問題3hot-key-rebalance&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;3&lt;/span&gt; 問題3：hot key (rebalance)&lt;/a&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#etsy-casecache-smearing&quot; id=&quot;toc-etsy-casecache-smearing&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;3.1&lt;/span&gt; Etsy case：cache smearing&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#redis-cluster-hash-slots&quot; id=&quot;toc-redis-cluster-hash-slots&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;3.2&lt;/span&gt; Redis Cluster: Hash Slots&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#consistent-hashing-with-bounded-loads&quot; id=&quot;toc-consistent-hashing-with-bounded-loads&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;3.3&lt;/span&gt; Consistent Hashing with Bounded
-Loads&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#結語&quot; id=&quot;toc-結語&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;4&lt;/span&gt; 結語&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/div&gt;&lt;div&gt;&lt;p&gt;&lt;em&gt;主要從之前在17
-Live的內部分享過的投影片整理出內容。&lt;/em&gt;&lt;/p&gt;
-&lt;h1 data-number=&quot;1&quot; id=&quot;問題1-平均分配&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;1&lt;/span&gt; 問題1: 平均分配&lt;/h1&gt;
-&lt;p&gt;假設我們有巨量的資料要處理，一台機器是處理不來的，所以我們需要很多很多台機器(N台)來處理，那接下來的問題就是，要怎麼把這些資料平均分配給這N台機器來處理？&lt;/p&gt;
-&lt;p&gt;為了具象化這個情境(但不失一般性)，以下都假設我們使用了N台 cache
-server (&lt;code&gt;memcahed&lt;/code&gt;)，這些server的編號從0, 1, 2, … 到 N-1
-。然後每筆資料都有其獨一無二的&lt;code&gt;key&lt;/code&gt;。&lt;/p&gt;
-&lt;p&gt;所以，我們需要一個好的hash function，這個hash function會把
-&lt;code&gt;key&lt;/code&gt; 平均對應到 0 到 N-1 的正整數。&lt;/p&gt;
-&lt;h2 data-number=&quot;1.1&quot; id=&quot;方法取餘數法-mod-n&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;1.1&lt;/span&gt; 方法：取餘數法 (mod N)&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;Hash(key) mod N&lt;/code&gt; ，這個結果必為 0 到 N-1
-的數，也就決定了要讓哪台server來處理。&lt;/p&gt;
-&lt;p&gt;這個方法簡單粗暴，缺點是 mod N
-的平均分配效果取決於N本身的一些性質(是否為質數等等)，但在實務上應該也是堪用了。&lt;/p&gt;
-&lt;h1 data-number=&quot;2&quot; id=&quot;問題2-動態增減機器&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2&lt;/span&gt; 問題2: 動態增減機器&lt;/h1&gt;
-&lt;p&gt;當資料量增加的時候，我們必須增加足夠的機器去處理，當資料量減少的時候，我們當然也希望減少機器以節省成本。在我們cache
+</section><section><div><div class="toc"><div class="header">Table of Contents</div><ul>
+<li><a href="#問題1-平均分配" id="toc-問題1-平均分配"><span class="toc-section-number">1</span> 問題1: 平均分配</a>
+<ul>
+<li><a href="#方法取餘數法-mod-n" id="toc-方法取餘數法-mod-n"><span class="toc-section-number">1.1</span> 方法：取餘數法 (mod N)</a></li>
+</ul></li>
+<li><a href="#問題2-動態增減機器" id="toc-問題2-動態增減機器"><span class="toc-section-number">2</span> 問題2: 動態增減機器</a>
+<ul>
+<li><a href="#ring-based-consistent-hash" id="toc-ring-based-consistent-hash"><span class="toc-section-number">2.1</span> Ring-based Consistent
+Hash</a></li>
+<li><a href="#jump-consistent-hash" id="toc-jump-consistent-hash"><span class="toc-section-number">2.2</span> Jump Consistent Hash</a></li>
+</ul></li>
+<li><a href="#問題3hot-key-rebalance" id="toc-問題3hot-key-rebalance"><span class="toc-section-number">3</span> 問題3：hot key (rebalance)</a>
+<ul>
+<li><a href="#etsy-casecache-smearing" id="toc-etsy-casecache-smearing"><span class="toc-section-number">3.1</span> Etsy case：cache smearing</a></li>
+<li><a href="#redis-cluster-hash-slots" id="toc-redis-cluster-hash-slots"><span class="toc-section-number">3.2</span> Redis Cluster: Hash Slots</a></li>
+<li><a href="#consistent-hashing-with-bounded-loads" id="toc-consistent-hashing-with-bounded-loads"><span class="toc-section-number">3.3</span> Consistent Hashing with Bounded
+Loads</a></li>
+</ul></li>
+<li><a href="#結語" id="toc-結語"><span class="toc-section-number">4</span> 結語</a></li>
+</ul></div><div><p><em>主要從之前在17
+Live的內部分享過的投影片整理出內容。</em></p>
+<h1 data-number="1" id="問題1-平均分配"><span class="header-section-number">1</span> 問題1: 平均分配</h1>
+<p>假設我們有巨量的資料要處理，一台機器是處理不來的，所以我們需要很多很多台機器(N台)來處理，那接下來的問題就是，要怎麼把這些資料平均分配給這N台機器來處理？</p>
+<p>為了具象化這個情境(但不失一般性)，以下都假設我們使用了N台 cache
+server (<code>memcahed</code>)，這些server的編號從0, 1, 2, … 到 N-1
+。然後每筆資料都有其獨一無二的<code>key</code>。</p>
+<p>所以，我們需要一個好的hash function，這個hash function會把
+<code>key</code> 平均對應到 0 到 N-1 的正整數。</p>
+<h2 data-number="1.1" id="方法取餘數法-mod-n"><span class="header-section-number">1.1</span> 方法：取餘數法 (mod N)</h2>
+<p><code>Hash(key) mod N</code> ，這個結果必為 0 到 N-1
+的數，也就決定了要讓哪台server來處理。</p>
+<p>這個方法簡單粗暴，缺點是 mod N
+的平均分配效果取決於N本身的一些性質(是否為質數等等)，但在實務上應該也是堪用了。</p>
+<h1 data-number="2" id="問題2-動態增減機器"><span class="header-section-number">2</span> 問題2: 動態增減機器</h1>
+<p>當資料量增加的時候，我們必須增加足夠的機器去處理，當資料量減少的時候，我們當然也希望減少機器以節省成本。在我們cache
 server的情境中，我們最不想看到的就是當增減機器的時候，產生大量的cache
-miss，所以我們定義以下的需求：&lt;/p&gt;
-&lt;p&gt;對一個N台機器的cluster，增減一台機器的時候，只能影響約&lt;code&gt;1/N+1&lt;/code&gt;的
-cache key&lt;/p&gt;
-&lt;p&gt;舉例來說，假如原先有4台機器。而現在要變成5台機器，那新的那台機器，要負責&lt;code&gt;1/5&lt;/code&gt;的資料量，而且這&lt;code&gt;1/5&lt;/code&gt;資料量的來源，要平均的來自其他4台機器。&lt;/p&gt;
-&lt;p&gt;取餘數法在這個情境是不適用的，因為當server的數量從N變到N+1，幾乎大部分cache
-key所對應到server都會有所改變，無法達到只影響1/N的需求。&lt;/p&gt;
-&lt;p&gt;也就是說，我們需要一個consistent的 hash
+miss，所以我們定義以下的需求：</p>
+<p>對一個N台機器的cluster，增減一台機器的時候，只能影響約<code>1/N+1</code>的
+cache key</p>
+<p>舉例來說，假如原先有4台機器。而現在要變成5台機器，那新的那台機器，要負責<code>1/5</code>的資料量，而且這<code>1/5</code>資料量的來源，要平均的來自其他4台機器。</p>
+<p>取餘數法在這個情境是不適用的，因為當server的數量從N變到N+1，幾乎大部分cache
+key所對應到server都會有所改變，無法達到只影響1/N的需求。</p>
+<p>也就是說，我們需要一個consistent的 hash
 function，當N變成N+1的時候，大部分的 key
-對應的編號都是不變的，只改變了其中約 1/N 的key的編號。&lt;/p&gt;
-&lt;h2 data-number=&quot;2.1&quot; id=&quot;ring-based-consistent-hash&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2.1&lt;/span&gt; Ring-based Consistent Hash&lt;/h2&gt;
-&lt;h3 data-number=&quot;2.1.1&quot; id=&quot;歷史&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2.1.1&lt;/span&gt; 歷史&lt;/h3&gt;
-&lt;p&gt;Akamai 公司在1997年的時候，發表了: &lt;a href=&quot;https://www.akamai.com/site/en/documents/research-paper/consistent-hashing-and-random-trees-distributed-caching-protocols-for-relieving-hot-spots-on-the-world-wide-web-technical-publication.pdf&quot;&gt;Consistent
+對應的編號都是不變的，只改變了其中約 1/N 的key的編號。</p>
+<h2 data-number="2.1" id="ring-based-consistent-hash"><span class="header-section-number">2.1</span> Ring-based Consistent Hash</h2>
+<h3 data-number="2.1.1" id="歷史"><span class="header-section-number">2.1.1</span> 歷史</h3>
+<p>Akamai 公司在1997年的時候，發表了: <a href="https://www.akamai.com/site/en/documents/research-paper/consistent-hashing-and-random-trees-distributed-caching-protocols-for-relieving-hot-spots-on-the-world-wide-web-technical-publication.pdf">Consistent
 Hashing and Random Trees: Distributed Caching Protocols for Relieving
-Hot Spots on the World Wide Web&lt;/a&gt;。&lt;/p&gt;
-&lt;p&gt;到了2007年，Amazon的DynamoDB，在DB
+Hot Spots on the World Wide Web</a>。</p>
+<p>到了2007年，Amazon的DynamoDB，在DB
 partitioning的部分，提到他們使用了consistent hash
-的演算法；而在同年，last.fm 的工程師發表了著名的 &lt;a href=&quot;https://github.com/RJ/ketama&quot;&gt;Ketama&lt;/a&gt; 實現，之後 consistent
-hash 就被廣泛運用到web backend的各個領域了。&lt;/p&gt;
-&lt;h3 data-number=&quot;2.1.2&quot; id=&quot;概念&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2.1.2&lt;/span&gt; 概念&lt;/h3&gt;
-&lt;p&gt;Ring-based的想法首先是把Hash function
+的演算法；而在同年，last.fm 的工程師發表了著名的 <a href="https://github.com/RJ/ketama">Ketama</a> 實現，之後 consistent
+hash 就被廣泛運用到web backend的各個領域了。</p>
+<h3 data-number="2.1.2" id="概念"><span class="header-section-number">2.1.2</span> 概念</h3>
+<p>Ring-based的想法首先是把Hash function
 的output想成一個環，然後每個server負責這個環的一部分(守備範圍)，如圖所示：
-&lt;img src=&quot;../images/ring.png&quot;&gt; &lt;img src=&quot;../images/ring_2.png&quot;&gt;
+<img src="../images/ring.png"> <img src="../images/ring_2.png">
 假如我們需要多一台server的話，因為不想要影響太多原有的守備範圍，可能會想把這個新server插在某兩個server的中間，但假如這個做的話，會很明顯的看出server
-loading不一致的問題。 &lt;img src=&quot;../images/ring_3.png&quot;&gt; &lt;em&gt;server5 和
-server1 的 loading是其他server的一半&lt;/em&gt;&lt;/p&gt;
-&lt;p&gt;接下來，我們引進virtual node
+loading不一致的問題。 <img src="../images/ring_3.png"> <em>server5 和
+server1 的 loading是其他server的一半</em></p>
+<p>接下來，我們引進virtual node
 的概念來解決這個問題，想像每個server各自對應到n個環上的virtual
 node，這些virtual
 node平均的分佈在環上，當我們新增刪除server的時候，就是把一大串對應的virtual
 node新增刪除而已，因為virtual
-node是平均分佈的，所以對loading影響不大，也不會讓每個server的守備範圍有大幅變動。&lt;/p&gt;
-&lt;h3 data-number=&quot;2.1.3&quot; id=&quot;實現&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2.1.3&lt;/span&gt; 實現&lt;/h3&gt;
-&lt;p&gt;試著理解code的話，可以對整個演算法有更好的掌握。&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode go&quot;&gt;&lt;code class=&quot;sourceCode go&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt;Map&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; Add&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;nodes &lt;span class=&quot;op&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; _&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; n &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;range&lt;/span&gt; nodes &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; i &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt; i &lt;span class=&quot;op&quot;&gt;&amp;lt;&lt;/span&gt; m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;virtualNodes&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt; i&lt;span class=&quot;op&quot;&gt;++&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            hash &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;hash&lt;span class=&quot;op&quot;&gt;([]&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;strconv&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Itoa&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot; &quot;&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; n&lt;span class=&quot;op&quot;&gt;)))&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;circle &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;append&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;circle&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; hash&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;hashMap&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;hash&lt;span class=&quot;op&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; n&lt;/span&gt;
-&lt;span id=&quot;cb1-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-13&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-13&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    sort&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Ints&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;circle&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-14&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-14&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;不管是新增或刪除node，我們都會重新呼叫這個&lt;code&gt;Add&lt;/code&gt;function，來建立virtual
-node與server之間的對應。在這個function 中有兩個重要的變數：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;m.circle&lt;/code&gt;: 從小到大排序好的 virtual nodes&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;m.hashMap&lt;/code&gt;: 每一個virtual node對應到的server&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre class=&quot;sourceCode go&quot;&gt;&lt;code class=&quot;sourceCode go&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt;Map&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; Get&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;key &lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    hash &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;hash&lt;span class=&quot;op&quot;&gt;([]&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;key&lt;span class=&quot;op&quot;&gt;)))&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    idx &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; sort&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Search&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bu&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;nodes&lt;span class=&quot;op&quot;&gt;),&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb2-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;i &lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;bool&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;nodes&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;op&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;&amp;gt;=&lt;/span&gt; hash &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; idx &lt;span class=&quot;op&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;bu&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;nodes&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        idx &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-13&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-13&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;hashMap&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;nodes&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;idx&lt;span class=&quot;op&quot;&gt;]]&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-14&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-14&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;給定一個 key，如何找到要處理這個key的Server呢？在這個&lt;code&gt;Get&lt;/code&gt;
-function裡，我們可以看到，就是做&lt;a href=&quot;https://pkg.go.dev/sort#Search&quot;&gt;binary
-search&lt;/a&gt;，找到最接近的virtual
-node，再透過hashMap反查回實體server。&lt;/p&gt;
-&lt;p&gt;以上code來自於&lt;a href=&quot;https://github.com/serialx/hashring&quot;&gt;https://github.com/serialx/hashring&lt;/a&gt;&lt;/p&gt;
-&lt;h2 data-number=&quot;2.2&quot; id=&quot;jump-consistent-hash&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2.2&lt;/span&gt; Jump Consistent Hash&lt;/h2&gt;
-&lt;p&gt;Google在2014年的時候，提出了&lt;a href=&quot;https://arxiv.org/ftp/arxiv/papers/1406/1406.2294.pdf&quot;&gt;Jump
-Consistent Hash&lt;/a&gt;，巧妙的利用了&lt;a href=&quot;https://en.wikipedia.org/wiki/Reservoir_sampling&quot;&gt;水塘抽樣(Reservoir
-sampling)&lt;/a&gt;的概念，設計出了一個相較於Ring-based，更快，記憶體使用量更少的Consistent
-Hash。&lt;/p&gt;
-&lt;p&gt;首先我們先用&lt;a href=&quot;https://leetcode.com/problems/linked-list-random-node/description/&quot;&gt;Leetcode
+node是平均分佈的，所以對loading影響不大，也不會讓每個server的守備範圍有大幅變動。</p>
+<h3 data-number="2.1.3" id="實現"><span class="header-section-number">2.1.3</span> 實現</h3>
+<p>試著理解code的話，可以對整個演算法有更好的掌握。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a aria-hidden="true" href="#cb1-1" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>Map<span class="op">)</span> Add<span class="op">(</span>nodes <span class="op">...</span><span class="dt">string</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-2"><a aria-hidden="true" href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a aria-hidden="true" href="#cb1-3" tabindex="-1"></a>    <span class="cf">for</span> _<span class="op">,</span> n <span class="op">:=</span> <span class="kw">range</span> nodes <span class="op">{</span></span>
+<span id="cb1-4"><a aria-hidden="true" href="#cb1-4" tabindex="-1"></a></span>
+<span id="cb1-5"><a aria-hidden="true" href="#cb1-5" tabindex="-1"></a>        <span class="cf">for</span> i <span class="op">:=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> m<span class="op">.</span>virtualNodes<span class="op">;</span> i<span class="op">++</span> <span class="op">{</span></span>
+<span id="cb1-6"><a aria-hidden="true" href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a aria-hidden="true" href="#cb1-7" tabindex="-1"></a>            hash <span class="op">:=</span> <span class="dt">int</span><span class="op">(</span>m<span class="op">.</span>hash<span class="op">([]</span><span class="dt">byte</span><span class="op">(</span>strconv<span class="op">.</span>Itoa<span class="op">(</span>i<span class="op">)</span> <span class="op">+</span> <span class="st">" "</span> <span class="op">+</span> n<span class="op">)))</span></span>
+<span id="cb1-8"><a aria-hidden="true" href="#cb1-8" tabindex="-1"></a>            m<span class="op">.</span>circle <span class="op">=</span> <span class="bu">append</span><span class="op">(</span>m<span class="op">.</span>circle<span class="op">,</span> hash<span class="op">)</span></span>
+<span id="cb1-9"><a aria-hidden="true" href="#cb1-9" tabindex="-1"></a></span>
+<span id="cb1-10"><a aria-hidden="true" href="#cb1-10" tabindex="-1"></a>            m<span class="op">.</span>hashMap<span class="op">[</span>hash<span class="op">]</span> <span class="op">=</span> n</span>
+<span id="cb1-11"><a aria-hidden="true" href="#cb1-11" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-12"><a aria-hidden="true" href="#cb1-12" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-13"><a aria-hidden="true" href="#cb1-13" tabindex="-1"></a>    sort<span class="op">.</span>Ints<span class="op">(</span>m<span class="op">.</span>circle<span class="op">)</span></span>
+<span id="cb1-14"><a aria-hidden="true" href="#cb1-14" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>不管是新增或刪除node，我們都會重新呼叫這個<code>Add</code>function，來建立virtual
+node與server之間的對應。在這個function 中有兩個重要的變數：</p>
+<ul>
+<li><code>m.circle</code>: 從小到大排序好的 virtual nodes</li>
+<li><code>m.hashMap</code>: 每一個virtual node對應到的server</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a aria-hidden="true" href="#cb2-1" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>Map<span class="op">)</span> Get<span class="op">(</span>key <span class="dt">string</span><span class="op">)</span> <span class="dt">string</span> <span class="op">{</span></span>
+<span id="cb2-2"><a aria-hidden="true" href="#cb2-2" tabindex="-1"></a>    hash <span class="op">:=</span> <span class="dt">int</span><span class="op">(</span>m<span class="op">.</span>hash<span class="op">([]</span><span class="dt">byte</span><span class="op">(</span>key<span class="op">)))</span></span>
+<span id="cb2-3"><a aria-hidden="true" href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a aria-hidden="true" href="#cb2-4" tabindex="-1"></a>    idx <span class="op">:=</span> sort<span class="op">.</span>Search<span class="op">(</span><span class="bu">len</span><span class="op">(</span>m<span class="op">.</span>nodes<span class="op">),</span> </span>
+<span id="cb2-5"><a aria-hidden="true" href="#cb2-5" tabindex="-1"></a></span>
+<span id="cb2-6"><a aria-hidden="true" href="#cb2-6" tabindex="-1"></a>        <span class="kw">func</span><span class="op">(</span>i <span class="dt">int</span><span class="op">)</span> <span class="dt">bool</span> <span class="op">{</span> <span class="cf">return</span> m<span class="op">.</span>nodes<span class="op">[</span>i<span class="op">]</span> <span class="op">&gt;=</span> hash <span class="op">}</span></span>
+<span id="cb2-7"><a aria-hidden="true" href="#cb2-7" tabindex="-1"></a></span>
+<span id="cb2-8"><a aria-hidden="true" href="#cb2-8" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb2-9"><a aria-hidden="true" href="#cb2-9" tabindex="-1"></a>    <span class="cf">if</span> idx <span class="op">==</span> <span class="bu">len</span><span class="op">(</span>m<span class="op">.</span>nodes<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-10"><a aria-hidden="true" href="#cb2-10" tabindex="-1"></a>        idx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb2-11"><a aria-hidden="true" href="#cb2-11" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-12"><a aria-hidden="true" href="#cb2-12" tabindex="-1"></a></span>
+<span id="cb2-13"><a aria-hidden="true" href="#cb2-13" tabindex="-1"></a>    <span class="cf">return</span> m<span class="op">.</span>hashMap<span class="op">[</span>m<span class="op">.</span>nodes<span class="op">[</span>idx<span class="op">]]</span></span>
+<span id="cb2-14"><a aria-hidden="true" href="#cb2-14" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>給定一個 key，如何找到要處理這個key的Server呢？在這個<code>Get</code>
+function裡，我們可以看到，就是做<a href="https://pkg.go.dev/sort#Search">binary
+search</a>，找到最接近的virtual
+node，再透過hashMap反查回實體server。</p>
+<p>以上code來自於<a href="https://github.com/serialx/hashring">https://github.com/serialx/hashring</a></p>
+<h2 data-number="2.2" id="jump-consistent-hash"><span class="header-section-number">2.2</span> Jump Consistent Hash</h2>
+<p>Google在2014年的時候，提出了<a href="https://arxiv.org/ftp/arxiv/papers/1406/1406.2294.pdf">Jump
+Consistent Hash</a>，巧妙的利用了<a href="https://en.wikipedia.org/wiki/Reservoir_sampling">水塘抽樣(Reservoir
+sampling)</a>的概念，設計出了一個相較於Ring-based，更快，記憶體使用量更少的Consistent
+Hash。</p>
+<p>首先我們先用<a href="https://leetcode.com/problems/linked-list-random-node/description/">Leetcode
 382: Linked List Random
-Node&lt;/a&gt;，來解釋水塘抽樣的概念。現在我們有一個未知長度的singly linked
+Node</a>，來解釋水塘抽樣的概念。現在我們有一個未知長度的singly linked
 list，需要從這個linked
 list中，隨機的返回其中一個node的值，而且，選擇任何一個node的機率都要是一樣的。此外，我們需要這個演算法是1-pass，且space
-complexity 為常數。&lt;/p&gt;
-&lt;p&gt;因此，我們可以利用隨機演算法的力量：&lt;/p&gt;
-&lt;ol type=&quot;1&quot;&gt;
-&lt;li&gt;先取node 1 的值&lt;/li&gt;
-&lt;li&gt;接下來到node 2，我們有1/2 的機率改取node 2的值。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;到這邊先停一下，這兩步執行完之後，很明顯有1/2的機率是取node
+complexity 為常數。</p>
+<p>因此，我們可以利用隨機演算法的力量：</p>
+<ol type="1">
+<li>先取node 1 的值</li>
+<li>接下來到node 2，我們有1/2 的機率改取node 2的值。</li>
+</ol>
+<p>到這邊先停一下，這兩步執行完之後，很明顯有1/2的機率是取node
 1，1/2的機率是取node 2。然後再考慮node 3，我們設定有1/3的機率取node
 3的值，也就是說，有2/3的機率是取到node 1或node 2，然後我們取到node
 1和node
 2的機率又是相等的，於是就變成前3個node的機率都是1/3。以此類推，我們有1/4的機率換成node
-4，有1/5的機率換成node 5…….有1/n的機率換成node n。&lt;/p&gt;
-&lt;p&gt;每走一步，有 1/n 的機率會改變，對比跟consitent
+4，有1/5的機率換成node 5…….有1/n的機率換成node n。</p>
+<p>每走一步，有 1/n 的機率會改變，對比跟consitent
 hashing的要求：對一個N台機器的cluster，增減一台機器的時候，只能影響約1/N+1的
-cache key，是不是非常相似？！&lt;/p&gt;
-&lt;p&gt;所以，我們就有了Jump Consistent Hash version 1：&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb3&quot;&gt;&lt;pre class=&quot;sourceCode c&quot;&gt;&lt;code class=&quot;sourceCode c&quot;&gt;&lt;span id=&quot;cb3-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; ch&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; key&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; N&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    random&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;seed&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;key&lt;span class=&quot;op&quot;&gt;);&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; b &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; j &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt; j &lt;span class=&quot;op&quot;&gt;&amp;lt;&lt;/span&gt; N&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt; j&lt;span class=&quot;op&quot;&gt;++)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;random&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;next&lt;span class=&quot;op&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;fl&quot;&gt;1.0&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;j &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;))&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            b &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; j&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-13&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-13&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-14&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-14&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-15&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-15&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; b&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-16&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-16&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;把 &lt;code&gt;key&lt;/code&gt;做為random
+cache key，是不是非常相似？！</p>
+<p>所以，我們就有了Jump Consistent Hash version 1：</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a aria-hidden="true" href="#cb3-1" tabindex="-1"></a><span class="dt">int</span> ch<span class="op">(</span><span class="dt">int</span> key<span class="op">,</span> <span class="dt">int</span> N<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-2"><a aria-hidden="true" href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a aria-hidden="true" href="#cb3-3" tabindex="-1"></a>    random<span class="op">.</span>seed<span class="op">(</span>key<span class="op">);</span></span>
+<span id="cb3-4"><a aria-hidden="true" href="#cb3-4" tabindex="-1"></a></span>
+<span id="cb3-5"><a aria-hidden="true" href="#cb3-5" tabindex="-1"></a>    <span class="dt">int</span> b <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb3-6"><a aria-hidden="true" href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a aria-hidden="true" href="#cb3-7" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> j <span class="op">=</span> <span class="dv">1</span><span class="op">;</span> j <span class="op">&lt;</span> N<span class="op">;</span> j<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb3-8"><a aria-hidden="true" href="#cb3-8" tabindex="-1"></a></span>
+<span id="cb3-9"><a aria-hidden="true" href="#cb3-9" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>random<span class="op">.</span>next<span class="op">()</span> <span class="op">&lt;</span> <span class="fl">1.0</span> <span class="op">/</span> <span class="op">(</span>j <span class="op">+</span> <span class="dv">1</span><span class="op">))</span></span>
+<span id="cb3-10"><a aria-hidden="true" href="#cb3-10" tabindex="-1"></a></span>
+<span id="cb3-11"><a aria-hidden="true" href="#cb3-11" tabindex="-1"></a>            b <span class="op">=</span> j<span class="op">;</span></span>
+<span id="cb3-12"><a aria-hidden="true" href="#cb3-12" tabindex="-1"></a></span>
+<span id="cb3-13"><a aria-hidden="true" href="#cb3-13" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-14"><a aria-hidden="true" href="#cb3-14" tabindex="-1"></a></span>
+<span id="cb3-15"><a aria-hidden="true" href="#cb3-15" tabindex="-1"></a>    <span class="cf">return</span> b<span class="op">;</span></span>
+<span id="cb3-16"><a aria-hidden="true" href="#cb3-16" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>把 <code>key</code>做為random
 seed，我們可以固定每個key最終會落在哪個server。這個version
-1的時間複雜度是O(N)，&lt;/p&gt;
-&lt;p&gt;在version
-1，我們觀察到以下機率的性質：首先，在這個迴圈中，&lt;code&gt;b&lt;/code&gt;改變的機率隨著&lt;code&gt;j&lt;/code&gt;變大，其實是很小的:
-(1/j+1)。&lt;/p&gt;
-&lt;p&gt;也就是可以假設從 1, 2, 3, …, &lt;em&gt;b&lt;/em&gt;, &lt;em&gt;b+1&lt;/em&gt;, ….,
-&lt;em&gt;j&lt;/em&gt;, j+1, …. N-1 中，從&lt;em&gt;b+1&lt;/em&gt;, …&lt;em&gt;j&lt;/em&gt;
-這段都沒改變它的值，都維持在&lt;code&gt;b&lt;/code&gt;。這樣的機率是 (b+1)/j&lt;/p&gt;
-&lt;p&gt;&lt;span class=&quot;math display&quot;&gt;\[ \frac{b+1}{b+2} \times \frac{b+2}{b+3}
-\cdots \times \frac{j-1}{j} \]&lt;/span&gt;&lt;/p&gt;
-&lt;p&gt;所以，計算一次隨機數r，從 r &amp;lt;= (b+1) / j 的不等式中，推出 j &amp;lt;=
-floor(b+1/r)，然後便能寫出以下的code：&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb4&quot;&gt;&lt;pre class=&quot;sourceCode c&quot;&gt;&lt;code class=&quot;sourceCode c&quot;&gt;&lt;span id=&quot;cb4-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; ch&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; key&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; num_buckets&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    random&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;seed&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;key&lt;span class=&quot;op&quot;&gt;);&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; b &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt; j &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;j &lt;span class=&quot;op&quot;&gt;&amp;lt;&lt;/span&gt; num_buckets&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        b &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; j&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;dt&quot;&gt;double&lt;/span&gt; r &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; random&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;next&lt;span class=&quot;op&quot;&gt;();&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        j &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; floor&lt;span class=&quot;op&quot;&gt;((&lt;/span&gt;b &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;/&lt;/span&gt; r&lt;span class=&quot;op&quot;&gt;);&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-13&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-13&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-14&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-14&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; b&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-15&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-15&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;這就是 jump consistent hash中，&lt;em&gt;jump&lt;/em&gt;
-的由來，透過計算一次隨機數，就可以往前 &lt;em&gt;jump&lt;/em&gt;
-，比原來的一步一步走快多了。&lt;/p&gt;
-&lt;p&gt;在原論文中，針對偽隨機的部分，提出了更進一步的優化，所以有了最終版本：&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb5&quot;&gt;&lt;pre class=&quot;sourceCode c&quot;&gt;&lt;code class=&quot;sourceCode c&quot;&gt;&lt;span id=&quot;cb5-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;dt&quot;&gt;int32_t&lt;/span&gt; JumpConsistentHash&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;uint64_t&lt;/span&gt; key&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;int32_t&lt;/span&gt; num_buckets &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;dt&quot;&gt;int64_t&lt;/span&gt; b &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;dt&quot;&gt;int64_t&lt;/span&gt; j &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;j &lt;span class=&quot;op&quot;&gt;&amp;lt;&lt;/span&gt; num_buckets&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        b &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; j&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        key &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; key &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;2862933555777941757&lt;/span&gt;&lt;span class=&quot;bu&quot;&gt;ULL&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        j &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;b &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;bu&quot;&gt;LL&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;31&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;((&lt;/span&gt;key &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;33&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;));&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-13&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-13&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; b&lt;span class=&quot;op&quot;&gt;;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-14&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-14&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;h3 data-number=&quot;2.2.1&quot; id=&quot;缺點&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2.2.1&lt;/span&gt; 缺點&lt;/h3&gt;
-&lt;p&gt;Jump Consistent Hash
+1的時間複雜度是O(N)，</p>
+<p>在version
+1，我們觀察到以下機率的性質：首先，在這個迴圈中，<code>b</code>改變的機率隨著<code>j</code>變大，其實是很小的:
+(1/j+1)。</p>
+<p>也就是可以假設從 1, 2, 3, …, <em>b</em>, <em>b+1</em>, ….,
+<em>j</em>, j+1, …. N-1 中，從<em>b+1</em>, …<em>j</em>
+這段都沒改變它的值，都維持在<code>b</code>。這樣的機率是 (b+1)/j</p>
+<p><span class="math display">\[ \frac{b+1}{b+2} \times \frac{b+2}{b+3}
+\cdots \times \frac{j-1}{j} \]</span></p>
+<p>所以，計算一次隨機數r，從 r &lt;= (b+1) / j 的不等式中，推出 j &lt;=
+floor(b+1/r)，然後便能寫出以下的code：</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a aria-hidden="true" href="#cb4-1" tabindex="-1"></a><span class="dt">int</span> ch<span class="op">(</span><span class="dt">int</span> key<span class="op">,</span> <span class="dt">int</span> num_buckets<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-2"><a aria-hidden="true" href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a aria-hidden="true" href="#cb4-3" tabindex="-1"></a>    random<span class="op">.</span>seed<span class="op">(</span>key<span class="op">);</span></span>
+<span id="cb4-4"><a aria-hidden="true" href="#cb4-4" tabindex="-1"></a></span>
+<span id="cb4-5"><a aria-hidden="true" href="#cb4-5" tabindex="-1"></a>    <span class="dt">int</span> b <span class="op">=</span> <span class="op">-</span><span class="dv">1</span><span class="op">;</span></span>
+<span id="cb4-6"><a aria-hidden="true" href="#cb4-6" tabindex="-1"></a>    <span class="dt">int</span> j <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb4-7"><a aria-hidden="true" href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-8"><a aria-hidden="true" href="#cb4-8" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span>j <span class="op">&lt;</span> num_buckets<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-9"><a aria-hidden="true" href="#cb4-9" tabindex="-1"></a>        b <span class="op">=</span> j<span class="op">;</span></span>
+<span id="cb4-10"><a aria-hidden="true" href="#cb4-10" tabindex="-1"></a>        <span class="dt">double</span> r <span class="op">=</span> random<span class="op">.</span>next<span class="op">();</span></span>
+<span id="cb4-11"><a aria-hidden="true" href="#cb4-11" tabindex="-1"></a>        j <span class="op">=</span> floor<span class="op">((</span>b <span class="op">+</span> <span class="dv">1</span><span class="op">)</span> <span class="op">/</span> r<span class="op">);</span></span>
+<span id="cb4-12"><a aria-hidden="true" href="#cb4-12" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-13"><a aria-hidden="true" href="#cb4-13" tabindex="-1"></a></span>
+<span id="cb4-14"><a aria-hidden="true" href="#cb4-14" tabindex="-1"></a>    <span class="cf">return</span> b<span class="op">;</span></span>
+<span id="cb4-15"><a aria-hidden="true" href="#cb4-15" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>這就是 jump consistent hash中，<em>jump</em>
+的由來，透過計算一次隨機數，就可以往前 <em>jump</em>
+，比原來的一步一步走快多了。</p>
+<p>在原論文中，針對偽隨機的部分，提出了更進一步的優化，所以有了最終版本：</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a aria-hidden="true" href="#cb5-1" tabindex="-1"></a><span class="dt">int32_t</span> JumpConsistentHash<span class="op">(</span><span class="dt">uint64_t</span> key<span class="op">,</span> <span class="dt">int32_t</span> num_buckets <span class="op">{</span></span>
+<span id="cb5-2"><a aria-hidden="true" href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a aria-hidden="true" href="#cb5-3" tabindex="-1"></a>    <span class="dt">int64_t</span> b <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb5-4"><a aria-hidden="true" href="#cb5-4" tabindex="-1"></a>    <span class="dt">int64_t</span> j <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-5"><a aria-hidden="true" href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a aria-hidden="true" href="#cb5-6" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span>j <span class="op">&lt;</span> num_buckets<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-7"><a aria-hidden="true" href="#cb5-7" tabindex="-1"></a>        b <span class="op">=</span> j<span class="op">;</span></span>
+<span id="cb5-8"><a aria-hidden="true" href="#cb5-8" tabindex="-1"></a>        key <span class="op">=</span> key <span class="op">*</span> <span class="dv">2862933555777941757</span><span class="bu">ULL</span> <span class="op">+</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb5-9"><a aria-hidden="true" href="#cb5-9" tabindex="-1"></a>        j <span class="op">=</span> <span class="op">(</span>b <span class="op">+</span> <span class="dv">1</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="dt">double</span><span class="op">(</span><span class="dv">1</span><span class="bu">LL</span> <span class="op">&lt;&lt;</span> <span class="dv">31</span><span class="op">)</span> <span class="op">/</span> <span class="dt">double</span><span class="op">((</span>key <span class="op">&gt;&gt;</span> <span class="dv">33</span><span class="op">)</span> <span class="op">+</span> <span class="dv">1</span><span class="op">));</span></span>
+<span id="cb5-10"><a aria-hidden="true" href="#cb5-10" tabindex="-1"></a></span>
+<span id="cb5-11"><a aria-hidden="true" href="#cb5-11" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-12"><a aria-hidden="true" href="#cb5-12" tabindex="-1"></a></span>
+<span id="cb5-13"><a aria-hidden="true" href="#cb5-13" tabindex="-1"></a>    <span class="cf">return</span> b<span class="op">;</span></span>
+<span id="cb5-14"><a aria-hidden="true" href="#cb5-14" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 data-number="2.2.1" id="缺點"><span class="header-section-number">2.2.1</span> 缺點</h3>
+<p>Jump Consistent Hash
 有著簡潔的實現，從機率上也得到更好的均勻分布，但在實務上，它還是有著一些缺點：首先，必須保存一個
 server name 對 index 的對應，因為在consistent
-hash中，server一律是用number來表示的。&lt;/p&gt;
-&lt;p&gt;接下來要從中間移除一個server是不可行的，因為這樣會讓編號中間空出一個，我們對中間的node只能做replace，而新增刪除node只能從尾端(tail)做起。相對來說，Ring-based
-Consistent Hash 只是去移除對應的 virtual nodes，就彈性了許多。&lt;/p&gt;
-&lt;p&gt;從這點考慮，Jump Consistent Hash 比較適合node
-不會劇烈改變的環境，例如database storage。&lt;/p&gt;
-&lt;h1 data-number=&quot;3&quot; id=&quot;問題3hot-key-rebalance&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;3&lt;/span&gt; 問題3：hot key (rebalance)&lt;/h1&gt;
-&lt;p&gt;在之前的故事中，我們成功的把key一視同仁的分散到每個機器去處理了，可惜的是，在真實世界中，有些key就是比其他的key熱門，這些hot
+hash中，server一律是用number來表示的。</p>
+<p>接下來要從中間移除一個server是不可行的，因為這樣會讓編號中間空出一個，我們對中間的node只能做replace，而新增刪除node只能從尾端(tail)做起。相對來說，Ring-based
+Consistent Hash 只是去移除對應的 virtual nodes，就彈性了許多。</p>
+<p>從這點考慮，Jump Consistent Hash 比較適合node
+不會劇烈改變的環境，例如database storage。</p>
+<h1 data-number="3" id="問題3hot-key-rebalance"><span class="header-section-number">3</span> 問題3：hot key (rebalance)</h1>
+<p>在之前的故事中，我們成功的把key一視同仁的分散到每個機器去處理了，可惜的是，在真實世界中，有些key就是比其他的key熱門，這些hot
 key的存在，會讓部分cache
 server的loading遠高於其他server，因此，我們必須做適當的rebalance，再次分散存在hot
-key的server的loading。&lt;/p&gt;
-&lt;h2 data-number=&quot;3.1&quot; id=&quot;etsy-casecache-smearing&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;3.1&lt;/span&gt; Etsy case：cache smearing&lt;/h2&gt;
-&lt;p&gt;Etsy 在這篇&lt;a href=&quot;https://www.etsy.com/codeascraft/how-etsy-caches&quot;&gt;How Etsy caches:
-hashing, Ketama, and cache smearing&lt;/a&gt;中，解釋了他們如何處理在
-memcached cluster 遇到的 hot key 問題。&lt;/p&gt;
-&lt;p&gt;Etsy使用了consistent hash，將要做http cache的資料分散給不同memcached
+key的server的loading。</p>
+<h2 data-number="3.1" id="etsy-casecache-smearing"><span class="header-section-number">3.1</span> Etsy case：cache smearing</h2>
+<p>Etsy 在這篇<a href="https://www.etsy.com/codeascraft/how-etsy-caches">How Etsy caches:
+hashing, Ketama, and cache smearing</a>中，解釋了他們如何處理在
+memcached cluster 遇到的 hot key 問題。</p>
+<p>Etsy使用了consistent hash，將要做http cache的資料分散給不同memcached
 server去處理，可以想見的是，有些http頁面就是比其他頁面還要熱門許多，所以產生了hot
-key 問題。&lt;/p&gt;
-&lt;p&gt;對於hot key問題，Etsy使用了一種他們稱為cache
+key 問題。</p>
+<p>對於hot key問題，Etsy使用了一種他們稱為cache
 smearing的技巧，這個技巧是這樣的：假如現在我們已經知道有一個hot
-key為&lt;code&gt;popular_key&lt;/code&gt;，我們就把這個key
-duplicate幾份：&lt;code&gt;popular_key_1, popular_key_2, popular_key_3... popular_key_16&amp;nbsp;&lt;/code&gt;，這些key全部對應到相同的內容，也就是將1個hot
+key為<code>popular_key</code>，我們就把這個key
+duplicate幾份：<code>popular_key_1, popular_key_2, popular_key_3... popular_key_16&nbsp;</code>，這些key全部對應到相同的內容，也就是將1個hot
 key變成多個key，處理hot key內容的server變多了，也就減緩了hot
-key帶來的影響。&lt;/p&gt;
-&lt;p&gt;在實務上，Etsy使用mctop去監控memcached cluster，並將觀測到的hot
-key手動加入到一個cache smearing清單裡。&lt;/p&gt;
-&lt;h2 data-number=&quot;3.2&quot; id=&quot;redis-cluster-hash-slots&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;3.2&lt;/span&gt; Redis Cluster: Hash Slots&lt;/h2&gt;
-&lt;p&gt;在Redis Cluster 的架構中，Redis
-提出了一種更加彈性的作法(但也需要更多的人為操作)。&lt;/p&gt;
-&lt;p&gt;首先，Redis利用CRC演算法，劃分出了16384個&lt;strong&gt;slots&lt;/strong&gt;，也就是說，每一個cache_key經過CRC演算法後，就可以知道要由哪一個slot負責處理。重點是這些slots是虛擬的，使用者可以進一步控制哪些slots要由哪些實體機器來處理，&lt;/p&gt;
-&lt;p&gt;也就是說，當我們觀測到hot
-key問題的時候，是可以藉由手動重新分配slots到不同的機器上來解決的。&lt;/p&gt;
-&lt;h2 data-number=&quot;3.3&quot; id=&quot;consistent-hashing-with-bounded-loads&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;3.3&lt;/span&gt; Consistent Hashing with Bounded
-Loads&lt;/h2&gt;
-&lt;p&gt;對於 hot key 問題，Google 提出了另外一種作法：&lt;a href=&quot;https://ai.googleblog.com/2017/04/consistent-hashing-with-bounded-loads.html&quot;&gt;Consistent
-Hashing with Bounded Loads&lt;/a&gt;。&lt;/p&gt;
-&lt;p&gt;這個作法是基於ring-based consistent
+key帶來的影響。</p>
+<p>在實務上，Etsy使用mctop去監控memcached cluster，並將觀測到的hot
+key手動加入到一個cache smearing清單裡。</p>
+<h2 data-number="3.2" id="redis-cluster-hash-slots"><span class="header-section-number">3.2</span> Redis Cluster: Hash Slots</h2>
+<p>在Redis Cluster 的架構中，Redis
+提出了一種更加彈性的作法(但也需要更多的人為操作)。</p>
+<p>首先，Redis利用CRC演算法，劃分出了16384個<strong>slots</strong>，也就是說，每一個cache_key經過CRC演算法後，就可以知道要由哪一個slot負責處理。重點是這些slots是虛擬的，使用者可以進一步控制哪些slots要由哪些實體機器來處理，</p>
+<p>也就是說，當我們觀測到hot
+key問題的時候，是可以藉由手動重新分配slots到不同的機器上來解決的。</p>
+<h2 data-number="3.3" id="consistent-hashing-with-bounded-loads"><span class="header-section-number">3.3</span> Consistent Hashing with Bounded
+Loads</h2>
+<p>對於 hot key 問題，Google 提出了另外一種作法：<a href="https://ai.googleblog.com/2017/04/consistent-hashing-with-bounded-loads.html">Consistent
+Hashing with Bounded Loads</a>。</p>
+<p>這個作法是基於ring-based consistent
 hash：首先我們監控每台server的loading，並設置每台server的loading上限，現在假設這個上限是125%，當有一台server
 A他的loading超過每台server平均的loading百分之25的時候，就會啟動bounded
-loads的機制。&lt;/p&gt;
-&lt;p&gt;這個機制就是，接下來原本要給A處理的key，會轉給沿著ring順時鐘方向，下一個virtual
-node對應的實體server來處理，藉此來分散loading。&lt;/p&gt;
-&lt;p&gt;進一步分析這個演算法，可以得到下面三個好處：&lt;/p&gt;
-&lt;ol type=&quot;1&quot;&gt;
-&lt;li&gt;沒有任何server超過loading的話，就是一般的ring-based consistent
-hashing。&lt;/li&gt;
-&lt;li&gt;對相同key來說，它的fallback server是一致的。&lt;/li&gt;
-&lt;li&gt;對不同key來說，它的fallback server是不一樣的。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;Vimeo 把這個演算法實作在 HAProxy 上，作為其load
-balancer機制的其中一個選項。根據Vimeo的&lt;a href=&quot;https://medium.com/vimeo-engineering-blog/improving-load-balancing-with-a-new-consistent-hashing-algorithm-9f1bd75709ed&quot;&gt;測試&lt;/a&gt;，loading上限設置在125%～200%中，都有不錯的效果。&lt;/p&gt;
-&lt;h1 data-number=&quot;4&quot; id=&quot;結語&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;4&lt;/span&gt; 結語&lt;/h1&gt;
-&lt;p&gt;這篇文章主要介紹了 consitent hash
-的概念，以及相關的演算法，如以下：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;ring-based consitent hashing&lt;/li&gt;
-&lt;li&gt;jump consistent hashing&lt;/li&gt;
-&lt;li&gt;redis hash slots&lt;/li&gt;
-&lt;li&gt;consistent hash with bounded loads&lt;/li&gt;
-&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/article&gt;&lt;comment&gt;&lt;script async=&quot;async&quot; crossorigin=&quot;anonymous&quot; data-category=&quot;General&quot; data-category-id=&quot;DIC_kwDOD5Bpa84COAIg&quot; data-emit-metadata=&quot;0&quot; data-input-position=&quot;top&quot; data-lang=&quot;en&quot; data-mapping=&quot;pathname&quot; data-reactions-enabled=&quot;0&quot; data-repo=&quot;onemouth/onemouth.github.io&quot; data-repo-id=&quot;MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=&quot; data-theme=&quot;light&quot; src=&quot;https://giscus.app/client.js&quot;&gt;&lt;/script&gt;&lt;script async=&quot;async&quot; src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/comment&gt;&lt;/div&gt;&lt;/main&gt;&lt;footer&gt;Site generated by pandoc and babashka&lt;/footer&gt;
-&lt;/body&gt;&lt;/html&gt;
-]]&gt;</summary></entry><entry><title>設計 Golang 的 error</title><link href="https://onemouth.github.io/posts/2022-09-20-golang-errors.html" /><id>https://onemouth.github.io/posts/2022-09-20-golang-errors.html</id><published>2022-09-20T12:00:00+08:00</published><updated>2022-09-20T12:00:00+08:00</updated><summary type="html">&lt;![CDATA[&lt;html lang=&quot;en&quot;&gt;&lt;body&gt;&lt;header&gt;&lt;div class=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Put some ink into the inkpot&lt;/a&gt;&lt;/div&gt;&lt;/header&gt;&lt;main&gt;&lt;div&gt;&lt;article&gt;&lt;h1&gt;設計
-Golang 的 error&lt;/h1&gt;&lt;section class=&quot;header&quot;&gt;
+loads的機制。</p>
+<p>這個機制就是，接下來原本要給A處理的key，會轉給沿著ring順時鐘方向，下一個virtual
+node對應的實體server來處理，藉此來分散loading。</p>
+<p>進一步分析這個演算法，可以得到下面三個好處：</p>
+<ol type="1">
+<li>沒有任何server超過loading的話，就是一般的ring-based consistent
+hashing。</li>
+<li>對相同key來說，它的fallback server是一致的。</li>
+<li>對不同key來說，它的fallback server是不一樣的。</li>
+</ol>
+<p>Vimeo 把這個演算法實作在 HAProxy 上，作為其load
+balancer機制的其中一個選項。根據Vimeo的<a href="https://medium.com/vimeo-engineering-blog/improving-load-balancing-with-a-new-consistent-hashing-algorithm-9f1bd75709ed">測試</a>，loading上限設置在125%～200%中，都有不錯的效果。</p>
+<h1 data-number="4" id="結語"><span class="header-section-number">4</span> 結語</h1>
+<p>這篇文章主要介紹了 consitent hash
+的概念，以及相關的演算法，如以下：</p>
+<ul>
+<li>ring-based consitent hashing</li>
+<li>jump consistent hashing</li>
+<li>redis hash slots</li>
+<li>consistent hash with bounded loads</li>
+</ul></div></div></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry><entry><title>設計 Golang 的 error</title><link href="https://onemouth.github.io/posts/2022-09-20-golang-errors.html" /><id>https://onemouth.github.io/posts/2022-09-20-golang-errors.html</id><published>2022-09-20T12:00:00+08:00</published><updated>2022-09-20T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>設計
+Golang 的 error</h1><section class="header">
 Posted on Sep 20, 2022
 by LT
-&lt;/section&gt;&lt;section&gt;&lt;div&gt;&lt;div class=&quot;toc&quot;&gt;&lt;div class=&quot;header&quot;&gt;Table of Contents&lt;/div&gt;&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#package-內部產生的-error&quot; id=&quot;toc-package-內部產生的-error&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;1&lt;/span&gt; package 內部產生的 error&lt;/a&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#sentinel-error&quot; id=&quot;toc-sentinel-error&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;1.1&lt;/span&gt; Sentinel Error&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#定義一個-error-type&quot; id=&quot;toc-定義一個-error-type&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;1.2&lt;/span&gt; 定義一個 error type&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#需要包裝wrap其他error&quot; id=&quot;toc-需要包裝wrap其他error&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;2&lt;/span&gt;
-需要包裝(Wrap)其他error&lt;/a&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#定義一個-struct&quot; id=&quot;toc-定義一個-struct&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;2.1&lt;/span&gt; 定義一個 struct&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#結語&quot; id=&quot;toc-結語&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;3&lt;/span&gt; 結語&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/div&gt;&lt;div&gt;&lt;p&gt;在 Go 裡面，主要用來處理 error 的方法，是利用在 Go
-1.13 時新引入的這兩個函式：&lt;a href=&quot;https://pkg.go.dev/errors#Is&quot;&gt;errors.Is&lt;/a&gt; 和 &lt;a href=&quot;https://pkg.go.dev/errors#As&quot;&gt;errors.As&lt;/a&gt;。在本文，想要探討如何設計好的error
-type，才能和 Go 標準庫提供的這兩個函數配合的天衣無縫。&lt;/p&gt;
-&lt;p&gt;首先先把error大略分爲兩種，一種是沒有包裝其他error的，是我們的這個package內部產生的error，和其他package無關。另一種則是有包裝的，是在我們呼叫其他package的時候產生的error，因此必須保留這個上下文。&lt;/p&gt;
-&lt;p&gt;以下來分別看一下兩種error的設計。&lt;/p&gt;
-&lt;h1 data-number=&quot;1&quot; id=&quot;package-內部產生的-error&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;1&lt;/span&gt; package 內部產生的 error&lt;/h1&gt;
-&lt;h2 data-number=&quot;1.1&quot; id=&quot;sentinel-error&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;1.1&lt;/span&gt; Sentinel Error&lt;/h2&gt;
-&lt;p&gt;這是最常見的，也在許多知名的package被廣泛使用。&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode go&quot;&gt;&lt;code class=&quot;sourceCode go&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;package&lt;/span&gt; example&lt;/span&gt;
-&lt;span id=&quot;cb1-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  ErrExample &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; erros&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;New&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;test&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;// Error Handling&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;err &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; example&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;DoSomething&lt;span class=&quot;op&quot;&gt;()&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; errors&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Is&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;err&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; example&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;ErrExmaple&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    fmt&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Println&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;do error handling)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;sentinal
-error的好處是簡單，定義快速，又一目瞭然。缺點是定義了全域變數，還有在runtime才初始化。但這種形式是如此的常見，我想這些缺點不是大問題才是。&lt;/p&gt;
-&lt;h2 data-number=&quot;1.2&quot; id=&quot;定義一個-error-type&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;1.2&lt;/span&gt; 定義一個 error type&lt;/h2&gt;
-&lt;p&gt;另一種常見的方法是定義一個 error type，這個type 會實作
-&lt;code&gt;Error() string&lt;/code&gt;。我們再利用這個 type，定義一些 const
-error。&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre class=&quot;sourceCode go&quot;&gt;&lt;code class=&quot;sourceCode go&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;type&lt;/span&gt; InvalidFormatError &lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;e InvalidFormatError&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; Error&lt;span class=&quot;op&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;e&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    ErrNoDdata         &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; InvalidFormatError&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;no data&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    ErrLengthTooLong   &lt;span class=&quot;op&quot;&gt;=&lt;/span&gt; InvalidFormatError&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;length too long&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-13&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-13&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;// Error Handling&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-14&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-14&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; errors&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Is&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;err&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; ErrLengthTooLong&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-15&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-15&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    fmt&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Println&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;do error handling&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb2-16&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-16&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-17&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-17&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-18&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-18&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;var&lt;/span&gt; badRequest InvalidFormatError&lt;/span&gt;
-&lt;span id=&quot;cb2-19&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-19&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; errors&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;As&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;err&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;&amp;amp;&lt;/span&gt;badRequest&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-20&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-20&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    fmt&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Println&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;do error handling&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-21&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-21&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;這種寫法的好處除了也支援 &lt;code&gt;errros.Is&lt;/code&gt; 以外，我們還可以利用
-&lt;code&gt;errors.As&lt;/code&gt; 去判斷同一類的 error。&lt;/p&gt;
-&lt;p&gt;例如在這個例子，ErrNoData 和 ErrLengthTooLong 都屬於
+</section><section><div><div class="toc"><div class="header">Table of Contents</div><ul>
+<li><a href="#package-內部產生的-error" id="toc-package-內部產生的-error"><span class="toc-section-number">1</span> package 內部產生的 error</a>
+<ul>
+<li><a href="#sentinel-error" id="toc-sentinel-error"><span class="toc-section-number">1.1</span> Sentinel Error</a></li>
+<li><a href="#定義一個-error-type" id="toc-定義一個-error-type"><span class="toc-section-number">1.2</span> 定義一個 error type</a></li>
+</ul></li>
+<li><a href="#需要包裝wrap其他error" id="toc-需要包裝wrap其他error"><span class="toc-section-number">2</span>
+需要包裝(Wrap)其他error</a>
+<ul>
+<li><a href="#定義一個-struct" id="toc-定義一個-struct"><span class="toc-section-number">2.1</span> 定義一個 struct</a></li>
+</ul></li>
+<li><a href="#結語" id="toc-結語"><span class="toc-section-number">3</span> 結語</a></li>
+</ul></div><div><p>在 Go 裡面，主要用來處理 error 的方法，是利用在 Go
+1.13 時新引入的這兩個函式：<a href="https://pkg.go.dev/errors#Is">errors.Is</a> 和 <a href="https://pkg.go.dev/errors#As">errors.As</a>。在本文，想要探討如何設計好的error
+type，才能和 Go 標準庫提供的這兩個函數配合的天衣無縫。</p>
+<p>首先先把error大略分爲兩種，一種是沒有包裝其他error的，是我們的這個package內部產生的error，和其他package無關。另一種則是有包裝的，是在我們呼叫其他package的時候產生的error，因此必須保留這個上下文。</p>
+<p>以下來分別看一下兩種error的設計。</p>
+<h1 data-number="1" id="package-內部產生的-error"><span class="header-section-number">1</span> package 內部產生的 error</h1>
+<h2 data-number="1.1" id="sentinel-error"><span class="header-section-number">1.1</span> Sentinel Error</h2>
+<p>這是最常見的，也在許多知名的package被廣泛使用。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a aria-hidden="true" href="#cb1-1" tabindex="-1"></a><span class="kw">package</span> example</span>
+<span id="cb1-2"><a aria-hidden="true" href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a aria-hidden="true" href="#cb1-3" tabindex="-1"></a><span class="kw">var</span> <span class="op">(</span></span>
+<span id="cb1-4"><a aria-hidden="true" href="#cb1-4" tabindex="-1"></a>  ErrExample <span class="op">=</span> erros<span class="op">.</span>New<span class="op">(</span><span class="st">"test"</span><span class="op">)</span></span>
+<span id="cb1-5"><a aria-hidden="true" href="#cb1-5" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb1-6"><a aria-hidden="true" href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a aria-hidden="true" href="#cb1-7" tabindex="-1"></a><span class="co">// Error Handling</span></span>
+<span id="cb1-8"><a aria-hidden="true" href="#cb1-8" tabindex="-1"></a>err <span class="op">:=</span> example<span class="op">.</span>DoSomething<span class="op">()</span></span>
+<span id="cb1-9"><a aria-hidden="true" href="#cb1-9" tabindex="-1"></a><span class="cf">if</span> errors<span class="op">.</span>Is<span class="op">(</span>err<span class="op">,</span> example<span class="op">.</span>ErrExmaple<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-10"><a aria-hidden="true" href="#cb1-10" tabindex="-1"></a>    fmt<span class="op">.</span>Println<span class="op">(</span><span class="st">"do error handling)</span></span>
+<span id="cb1-11"><a aria-hidden="true" href="#cb1-11" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>sentinal
+error的好處是簡單，定義快速，又一目瞭然。缺點是定義了全域變數，還有在runtime才初始化。但這種形式是如此的常見，我想這些缺點不是大問題才是。</p>
+<h2 data-number="1.2" id="定義一個-error-type"><span class="header-section-number">1.2</span> 定義一個 error type</h2>
+<p>另一種常見的方法是定義一個 error type，這個type 會實作
+<code>Error() string</code>。我們再利用這個 type，定義一些 const
+error。</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a aria-hidden="true" href="#cb2-1" tabindex="-1"></a><span class="kw">type</span> InvalidFormatError <span class="dt">string</span></span>
+<span id="cb2-2"><a aria-hidden="true" href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a aria-hidden="true" href="#cb2-3" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>e InvalidFormatError<span class="op">)</span> Error<span class="op">()</span> <span class="dt">string</span> <span class="op">{</span></span>
+<span id="cb2-4"><a aria-hidden="true" href="#cb2-4" tabindex="-1"></a>    <span class="cf">return</span> <span class="dt">string</span><span class="op">(</span>e<span class="op">)</span></span>
+<span id="cb2-5"><a aria-hidden="true" href="#cb2-5" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-6"><a aria-hidden="true" href="#cb2-6" tabindex="-1"></a></span>
+<span id="cb2-7"><a aria-hidden="true" href="#cb2-7" tabindex="-1"></a><span class="kw">const</span> <span class="op">(</span></span>
+<span id="cb2-8"><a aria-hidden="true" href="#cb2-8" tabindex="-1"></a>    ErrNoDdata         <span class="op">=</span> InvalidFormatError<span class="op">(</span><span class="st">"no data"</span><span class="op">)</span></span>
+<span id="cb2-9"><a aria-hidden="true" href="#cb2-9" tabindex="-1"></a>    ErrLengthTooLong   <span class="op">=</span> InvalidFormatError<span class="op">(</span><span class="st">"length too long"</span><span class="op">)</span></span>
+<span id="cb2-10"><a aria-hidden="true" href="#cb2-10" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb2-11"><a aria-hidden="true" href="#cb2-11" tabindex="-1"></a></span>
+<span id="cb2-12"><a aria-hidden="true" href="#cb2-12" tabindex="-1"></a></span>
+<span id="cb2-13"><a aria-hidden="true" href="#cb2-13" tabindex="-1"></a><span class="co">// Error Handling</span></span>
+<span id="cb2-14"><a aria-hidden="true" href="#cb2-14" tabindex="-1"></a><span class="cf">if</span> errors<span class="op">.</span>Is<span class="op">(</span>err<span class="op">,</span> ErrLengthTooLong<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-15"><a aria-hidden="true" href="#cb2-15" tabindex="-1"></a>    fmt<span class="op">.</span>Println<span class="op">(</span><span class="st">"do error handling"</span><span class="op">)</span> </span>
+<span id="cb2-16"><a aria-hidden="true" href="#cb2-16" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-17"><a aria-hidden="true" href="#cb2-17" tabindex="-1"></a></span>
+<span id="cb2-18"><a aria-hidden="true" href="#cb2-18" tabindex="-1"></a><span class="kw">var</span> badRequest InvalidFormatError</span>
+<span id="cb2-19"><a aria-hidden="true" href="#cb2-19" tabindex="-1"></a><span class="cf">if</span> errors<span class="op">.</span>As<span class="op">(</span>err<span class="op">,</span> <span class="op">&amp;</span>badRequest<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-20"><a aria-hidden="true" href="#cb2-20" tabindex="-1"></a>    fmt<span class="op">.</span>Println<span class="op">(</span><span class="st">"do error handling"</span><span class="op">)</span></span>
+<span id="cb2-21"><a aria-hidden="true" href="#cb2-21" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>這種寫法的好處除了也支援 <code>errros.Is</code> 以外，我們還可以利用
+<code>errors.As</code> 去判斷同一類的 error。</p>
+<p>例如在這個例子，ErrNoData 和 ErrLengthTooLong 都屬於
 InvalidFormatError 這個type，所以假如只想知道這個 error 屬於
-InvalidFormatError 這一類的話，就可以利用 errros.As 來做判斷。&lt;/p&gt;
-&lt;p&gt;其他好處包括了不用定義全域變數，不用在runtime初始化。缺點則是寫法比較複雜。&lt;/p&gt;
-&lt;h1 data-number=&quot;2&quot; id=&quot;需要包裝wrap其他error&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2&lt;/span&gt; 需要包裝(Wrap)其他error&lt;/h1&gt;
-&lt;p&gt;在其他情況，我們的error需要包裝其他package的error。最簡單的方法是利用
-&lt;code&gt;fmt.Errorf(&quot;%w&quot;, err)&lt;/code&gt; 直接包裝。但我們也可以利用定義 struct
-的方法，讓error的架構變得更清晰。&lt;/p&gt;
-&lt;h2 data-number=&quot;2.1&quot; id=&quot;定義一個-struct&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2.1&lt;/span&gt; 定義一個 struct&lt;/h2&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb3&quot;&gt;&lt;pre class=&quot;sourceCode go&quot;&gt;&lt;code class=&quot;sourceCode go&quot;&gt;&lt;span id=&quot;cb3-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;type&lt;/span&gt; myDBPkgError &lt;span class=&quot;kw&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    value &lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    err   &lt;span class=&quot;dt&quot;&gt;error&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;bv &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt;myDBPkgError&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; Error&lt;span class=&quot;op&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; fmt&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Sprintf&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;bad value %v&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; bv&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;value&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;bv &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt;myDBPkgError&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; Unwrap&lt;span class=&quot;op&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;error&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; bv&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;err&lt;/span&gt;
-&lt;span id=&quot;cb3-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-13&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-13&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-14&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-14&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;bv &lt;span class=&quot;op&quot;&gt;*&lt;/span&gt;myDBPkgError&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; Is&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;target &lt;span class=&quot;dt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;bool&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-15&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-15&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; target &lt;span class=&quot;op&quot;&gt;==&lt;/span&gt; sql&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;ErrNoRows &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-16&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-16&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;ot&quot;&gt;true&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-17&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-17&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-18&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-18&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;ot&quot;&gt;false&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-19&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-19&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-20&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-20&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-21&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-21&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; testErr&lt;span class=&quot;op&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;error&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-22&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-22&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    v &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;3&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-23&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-23&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    err &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; processDB&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;v&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-24&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-24&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;if&lt;/span&gt; err &lt;span class=&quot;op&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;ot&quot;&gt;nil&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-25&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-25&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; badValueError&lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;value&lt;span class=&quot;op&quot;&gt;:&lt;/span&gt; v&lt;span class=&quot;op&quot;&gt;,&lt;/span&gt; err&lt;span class=&quot;op&quot;&gt;:&lt;/span&gt; err&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-26&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-26&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-27&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-27&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;cf&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;ot&quot;&gt;nil&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-28&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-28&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;這個例子的重點是我們的struct定義了 &lt;code&gt;Unwrap()&lt;/code&gt;
-函式，利用這個函式，&lt;code&gt;erros.Is&lt;/code&gt; 和 &lt;code&gt;errors.As&lt;/code&gt;
+InvalidFormatError 這一類的話，就可以利用 errros.As 來做判斷。</p>
+<p>其他好處包括了不用定義全域變數，不用在runtime初始化。缺點則是寫法比較複雜。</p>
+<h1 data-number="2" id="需要包裝wrap其他error"><span class="header-section-number">2</span> 需要包裝(Wrap)其他error</h1>
+<p>在其他情況，我們的error需要包裝其他package的error。最簡單的方法是利用
+<code>fmt.Errorf("%w", err)</code> 直接包裝。但我們也可以利用定義 struct
+的方法，讓error的架構變得更清晰。</p>
+<h2 data-number="2.1" id="定義一個-struct"><span class="header-section-number">2.1</span> 定義一個 struct</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a aria-hidden="true" href="#cb3-1" tabindex="-1"></a><span class="kw">type</span> myDBPkgError <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb3-2"><a aria-hidden="true" href="#cb3-2" tabindex="-1"></a>    value <span class="dt">string</span></span>
+<span id="cb3-3"><a aria-hidden="true" href="#cb3-3" tabindex="-1"></a>    err   <span class="dt">error</span></span>
+<span id="cb3-4"><a aria-hidden="true" href="#cb3-4" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-5"><a aria-hidden="true" href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a aria-hidden="true" href="#cb3-6" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>bv <span class="op">*</span>myDBPkgError<span class="op">)</span> Error<span class="op">()</span> <span class="dt">string</span> <span class="op">{</span></span>
+<span id="cb3-7"><a aria-hidden="true" href="#cb3-7" tabindex="-1"></a>    <span class="cf">return</span> fmt<span class="op">.</span>Sprintf<span class="op">(</span><span class="st">"bad value %v"</span><span class="op">,</span> bv<span class="op">.</span>value<span class="op">)</span></span>
+<span id="cb3-8"><a aria-hidden="true" href="#cb3-8" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-9"><a aria-hidden="true" href="#cb3-9" tabindex="-1"></a></span>
+<span id="cb3-10"><a aria-hidden="true" href="#cb3-10" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>bv <span class="op">*</span>myDBPkgError<span class="op">)</span> Unwrap<span class="op">()</span> <span class="dt">error</span> <span class="op">{</span></span>
+<span id="cb3-11"><a aria-hidden="true" href="#cb3-11" tabindex="-1"></a>    <span class="cf">return</span> bv<span class="op">.</span>err</span>
+<span id="cb3-12"><a aria-hidden="true" href="#cb3-12" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-13"><a aria-hidden="true" href="#cb3-13" tabindex="-1"></a></span>
+<span id="cb3-14"><a aria-hidden="true" href="#cb3-14" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>bv <span class="op">*</span>myDBPkgError<span class="op">)</span> Is<span class="op">(</span>target <span class="dt">error</span><span class="op">)</span> <span class="dt">bool</span> <span class="op">{</span></span>
+<span id="cb3-15"><a aria-hidden="true" href="#cb3-15" tabindex="-1"></a>    <span class="cf">if</span> target <span class="op">==</span> sql<span class="op">.</span>ErrNoRows <span class="op">{</span></span>
+<span id="cb3-16"><a aria-hidden="true" href="#cb3-16" tabindex="-1"></a>        <span class="cf">return</span> <span class="ot">true</span></span>
+<span id="cb3-17"><a aria-hidden="true" href="#cb3-17" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-18"><a aria-hidden="true" href="#cb3-18" tabindex="-1"></a>    <span class="cf">return</span> <span class="ot">false</span></span>
+<span id="cb3-19"><a aria-hidden="true" href="#cb3-19" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-20"><a aria-hidden="true" href="#cb3-20" tabindex="-1"></a></span>
+<span id="cb3-21"><a aria-hidden="true" href="#cb3-21" tabindex="-1"></a><span class="kw">func</span> testErr<span class="op">()</span> <span class="dt">error</span> <span class="op">{</span></span>
+<span id="cb3-22"><a aria-hidden="true" href="#cb3-22" tabindex="-1"></a>    v <span class="op">:=</span> <span class="dv">3</span></span>
+<span id="cb3-23"><a aria-hidden="true" href="#cb3-23" tabindex="-1"></a>    err <span class="op">:=</span> processDB<span class="op">(</span>v<span class="op">)</span></span>
+<span id="cb3-24"><a aria-hidden="true" href="#cb3-24" tabindex="-1"></a>    <span class="cf">if</span> err <span class="op">!=</span> <span class="ot">nil</span> <span class="op">{</span></span>
+<span id="cb3-25"><a aria-hidden="true" href="#cb3-25" tabindex="-1"></a>        <span class="cf">return</span> badValueError<span class="op">{</span>value<span class="op">:</span> v<span class="op">,</span> err<span class="op">:</span> err<span class="op">}</span></span>
+<span id="cb3-26"><a aria-hidden="true" href="#cb3-26" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-27"><a aria-hidden="true" href="#cb3-27" tabindex="-1"></a>    <span class="cf">return</span> <span class="ot">nil</span></span>
+<span id="cb3-28"><a aria-hidden="true" href="#cb3-28" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>這個例子的重點是我們的struct定義了 <code>Unwrap()</code>
+函式，利用這個函式，<code>erros.Is</code> 和 <code>errors.As</code>
 才能正常運作，不只是嘗試match
-&lt;code&gt;badValueError{value: v, err: err}&lt;/code&gt;這個eror，還會不斷的往下尋找是否有其他能對應的error。&lt;/p&gt;
-&lt;p&gt;另一個我們可以定義的是&lt;code&gt;Is(target error) bool&lt;/code&gt;
-這個函式，他可以讓 &lt;code&gt;errors.Is&lt;/code&gt;
-使用，表示我們定義的這個error，其實跟另外某個error是相等的。&lt;/p&gt;
-&lt;h1 data-number=&quot;3&quot; id=&quot;結語&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;3&lt;/span&gt; 結語&lt;/h1&gt;
-&lt;p&gt;在這篇文章中，探討了我在 Go 中常使用的error
+<code>badValueError{value: v, err: err}</code>這個eror，還會不斷的往下尋找是否有其他能對應的error。</p>
+<p>另一個我們可以定義的是<code>Is(target error) bool</code>
+這個函式，他可以讓 <code>errors.Is</code>
+使用，表示我們定義的這個error，其實跟另外某個error是相等的。</p>
+<h1 data-number="3" id="結語"><span class="header-section-number">3</span> 結語</h1>
+<p>在這篇文章中，探討了我在 Go 中常使用的error
 handling技巧，在1.13之後，Go本身提供的error
-handling機制，的確是更加成熟了。&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/article&gt;&lt;comment&gt;&lt;script async=&quot;async&quot; crossorigin=&quot;anonymous&quot; data-category=&quot;General&quot; data-category-id=&quot;DIC_kwDOD5Bpa84COAIg&quot; data-emit-metadata=&quot;0&quot; data-input-position=&quot;top&quot; data-lang=&quot;en&quot; data-mapping=&quot;pathname&quot; data-reactions-enabled=&quot;0&quot; data-repo=&quot;onemouth/onemouth.github.io&quot; data-repo-id=&quot;MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=&quot; data-theme=&quot;light&quot; src=&quot;https://giscus.app/client.js&quot;&gt;&lt;/script&gt;&lt;script async=&quot;async&quot; src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/comment&gt;&lt;/div&gt;&lt;/main&gt;&lt;footer&gt;Site generated by pandoc and babashka&lt;/footer&gt;
-&lt;/body&gt;&lt;/html&gt;
-]]&gt;</summary></entry><entry><title>[筆記] Go：Nil Map</title><link href="https://onemouth.github.io/posts/2022-07-14-go-empty-map.html" /><id>https://onemouth.github.io/posts/2022-07-14-go-empty-map.html</id><published>2022-07-14T12:00:00+08:00</published><updated>2022-07-14T12:00:00+08:00</updated><summary type="html">&lt;![CDATA[&lt;html lang=&quot;en&quot;&gt;&lt;body&gt;&lt;header&gt;&lt;div class=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Put some ink into the inkpot&lt;/a&gt;&lt;/div&gt;&lt;/header&gt;&lt;main&gt;&lt;div&gt;&lt;article&gt;&lt;h1&gt;[筆記]
-Go：Nil Map&lt;/h1&gt;&lt;section class=&quot;header&quot;&gt;
+handling機制，的確是更加成熟了。</p></div></div></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry><entry><title>[筆記] Go：Nil Map</title><link href="https://onemouth.github.io/posts/2022-07-14-go-empty-map.html" /><id>https://onemouth.github.io/posts/2022-07-14-go-empty-map.html</id><published>2022-07-14T12:00:00+08:00</published><updated>2022-07-14T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>[筆記]
+Go：Nil Map</h1><section class="header">
 Posted on Jul 14, 2022
 by LT
-&lt;/section&gt;&lt;section&gt;&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode go&quot;&gt;&lt;code class=&quot;sourceCode go&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;package&lt;/span&gt; main&lt;/span&gt;
-&lt;span id=&quot;cb1-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;st&quot;&gt;&quot;fmt&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; main&lt;span class=&quot;op&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;kw&quot;&gt;var&lt;/span&gt; m &lt;span class=&quot;kw&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    fmt&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Println&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;test&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;])&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    m&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;test&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;]++&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    fmt&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Println&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;test&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;])&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;上面這段code的輸出為0，然後panic。&lt;/p&gt;
-&lt;p&gt;在這個例子，m是一個nil map。在Go中，對nil map的有一些操作是”nil
-safe”的：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;len(m)&lt;/code&gt;: 0&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;m[key]&lt;/code&gt;
-&lt;ul&gt;
-&lt;li&gt;return the zero value for the value type if key is not in the
-map&lt;/li&gt;
-&lt;li&gt;return the value assoiated with the key if key is in the map&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;利用第二個性質，假如是empty map的話，我們可以有像是python的&lt;a href=&quot;https://docs.python.org/3/library/collections.html#collections.defaultdict&quot;&gt;defaultdict&lt;/a&gt;的應用。&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre class=&quot;sourceCode go&quot;&gt;&lt;code class=&quot;sourceCode go&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;package&lt;/span&gt; main&lt;/span&gt;
-&lt;span id=&quot;cb2-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;st&quot;&gt;&quot;fmt&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;)&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;kw&quot;&gt;func&lt;/span&gt; main&lt;span class=&quot;op&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;{&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    m &lt;span class=&quot;op&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;dt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;{}&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    fmt&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Println&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;test&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;])&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    m&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;test&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;]++&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    fmt&lt;span class=&quot;op&quot;&gt;.&lt;/span&gt;Println&lt;span class=&quot;op&quot;&gt;(&lt;/span&gt;m&lt;span class=&quot;op&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;st&quot;&gt;&quot;test&quot;&lt;/span&gt;&lt;span class=&quot;op&quot;&gt;])&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;op&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;除了nil map以外，像是nil slice, nil channel也都有一些”nil
-safe”的操作。&lt;/p&gt;
-&lt;p&gt;對nil
-slice可以用&lt;code&gt;len&lt;/code&gt;取長度，也可以做&lt;code&gt;append&lt;/code&gt;操作。&lt;/p&gt;
-&lt;p&gt;也可以對nil channel做receive value或send
-value的動作。(雖然這樣會永久block住)&lt;/p&gt;
-&lt;h2 id=&quot;reference&quot;&gt;Reference&lt;/h2&gt;
-&lt;ol type=&quot;1&quot;&gt;
-&lt;li&gt;&lt;a href=&quot;https://pragprog.com/titles/d-gobrain/go-brain-teasers/&quot;&gt;Go
-Brain Teasers&lt;/a&gt;&lt;/li&gt;
-&lt;/ol&gt;&lt;/section&gt;&lt;/article&gt;&lt;comment&gt;&lt;script async=&quot;async&quot; crossorigin=&quot;anonymous&quot; data-category=&quot;General&quot; data-category-id=&quot;DIC_kwDOD5Bpa84COAIg&quot; data-emit-metadata=&quot;0&quot; data-input-position=&quot;top&quot; data-lang=&quot;en&quot; data-mapping=&quot;pathname&quot; data-reactions-enabled=&quot;0&quot; data-repo=&quot;onemouth/onemouth.github.io&quot; data-repo-id=&quot;MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=&quot; data-theme=&quot;light&quot; src=&quot;https://giscus.app/client.js&quot;&gt;&lt;/script&gt;&lt;script async=&quot;async&quot; src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/comment&gt;&lt;/div&gt;&lt;/main&gt;&lt;footer&gt;Site generated by pandoc and babashka&lt;/footer&gt;
-&lt;/body&gt;&lt;/html&gt;
-]]&gt;</summary></entry><entry><title>如何在Hakyll中產生slide shows</title><link href="https://onemouth.github.io/posts/2022-05-15-hakyll-html5-slides.html" /><id>https://onemouth.github.io/posts/2022-05-15-hakyll-html5-slides.html</id><published>2022-05-15T12:00:00+08:00</published><updated>2022-05-15T12:00:00+08:00</updated><summary type="html">&lt;![CDATA[&lt;html lang=&quot;en&quot;&gt;&lt;body&gt;&lt;header&gt;&lt;div class=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Put some ink into the inkpot&lt;/a&gt;&lt;/div&gt;&lt;/header&gt;&lt;main&gt;&lt;div&gt;&lt;article&gt;&lt;h1&gt;如何在Hakyll中產生slide
-shows&lt;/h1&gt;&lt;section class=&quot;header&quot;&gt;
+</section><section><div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a aria-hidden="true" href="#cb1-1" tabindex="-1"></a><span class="kw">package</span> main</span>
+<span id="cb1-2"><a aria-hidden="true" href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a aria-hidden="true" href="#cb1-3" tabindex="-1"></a><span class="kw">import</span> <span class="op">(</span></span>
+<span id="cb1-4"><a aria-hidden="true" href="#cb1-4" tabindex="-1"></a>    <span class="st">"fmt"</span></span>
+<span id="cb1-5"><a aria-hidden="true" href="#cb1-5" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb1-6"><a aria-hidden="true" href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a aria-hidden="true" href="#cb1-7" tabindex="-1"></a><span class="kw">func</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-8"><a aria-hidden="true" href="#cb1-8" tabindex="-1"></a>    <span class="kw">var</span> m <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">]</span><span class="dt">int</span></span>
+<span id="cb1-9"><a aria-hidden="true" href="#cb1-9" tabindex="-1"></a>    fmt<span class="op">.</span>Println<span class="op">(</span>m<span class="op">[</span><span class="st">"test"</span><span class="op">])</span></span>
+<span id="cb1-10"><a aria-hidden="true" href="#cb1-10" tabindex="-1"></a>    m<span class="op">[</span><span class="st">"test"</span><span class="op">]++</span></span>
+<span id="cb1-11"><a aria-hidden="true" href="#cb1-11" tabindex="-1"></a>    fmt<span class="op">.</span>Println<span class="op">(</span>m<span class="op">[</span><span class="st">"test"</span><span class="op">])</span></span>
+<span id="cb1-12"><a aria-hidden="true" href="#cb1-12" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>上面這段code的輸出為0，然後panic。</p>
+<p>在這個例子，m是一個nil map。在Go中，對nil map的有一些操作是”nil
+safe”的：</p>
+<ul>
+<li><code>len(m)</code>: 0</li>
+<li><code>m[key]</code>
+<ul>
+<li>return the zero value for the value type if key is not in the
+map</li>
+<li>return the value assoiated with the key if key is in the map</li>
+</ul></li>
+</ul>
+<p>利用第二個性質，假如是empty map的話，我們可以有像是python的<a href="https://docs.python.org/3/library/collections.html#collections.defaultdict">defaultdict</a>的應用。</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a aria-hidden="true" href="#cb2-1" tabindex="-1"></a><span class="kw">package</span> main</span>
+<span id="cb2-2"><a aria-hidden="true" href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a aria-hidden="true" href="#cb2-3" tabindex="-1"></a><span class="kw">import</span> <span class="op">(</span></span>
+<span id="cb2-4"><a aria-hidden="true" href="#cb2-4" tabindex="-1"></a>    <span class="st">"fmt"</span></span>
+<span id="cb2-5"><a aria-hidden="true" href="#cb2-5" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb2-6"><a aria-hidden="true" href="#cb2-6" tabindex="-1"></a></span>
+<span id="cb2-7"><a aria-hidden="true" href="#cb2-7" tabindex="-1"></a><span class="kw">func</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-8"><a aria-hidden="true" href="#cb2-8" tabindex="-1"></a>    m <span class="op">:=</span> <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">]</span><span class="dt">int</span><span class="op">{}</span></span>
+<span id="cb2-9"><a aria-hidden="true" href="#cb2-9" tabindex="-1"></a>    fmt<span class="op">.</span>Println<span class="op">(</span>m<span class="op">[</span><span class="st">"test"</span><span class="op">])</span></span>
+<span id="cb2-10"><a aria-hidden="true" href="#cb2-10" tabindex="-1"></a>    m<span class="op">[</span><span class="st">"test"</span><span class="op">]++</span></span>
+<span id="cb2-11"><a aria-hidden="true" href="#cb2-11" tabindex="-1"></a>    fmt<span class="op">.</span>Println<span class="op">(</span>m<span class="op">[</span><span class="st">"test"</span><span class="op">])</span></span>
+<span id="cb2-12"><a aria-hidden="true" href="#cb2-12" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>除了nil map以外，像是nil slice, nil channel也都有一些”nil
+safe”的操作。</p>
+<p>對nil
+slice可以用<code>len</code>取長度，也可以做<code>append</code>操作。</p>
+<p>也可以對nil channel做receive value或send
+value的動作。(雖然這樣會永久block住)</p>
+<h2 id="reference">Reference</h2>
+<ol type="1">
+<li><a href="https://pragprog.com/titles/d-gobrain/go-brain-teasers/">Go
+Brain Teasers</a></li>
+</ol></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry><entry><title>如何在Hakyll中產生slide shows</title><link href="https://onemouth.github.io/posts/2022-05-15-hakyll-html5-slides.html" /><id>https://onemouth.github.io/posts/2022-05-15-hakyll-html5-slides.html</id><published>2022-05-15T12:00:00+08:00</published><updated>2022-05-15T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>如何在Hakyll中產生slide
+shows</h1><section class="header">
 Posted on May 15, 2022
 by LT
-&lt;/section&gt;&lt;section&gt;&lt;p&gt;我們不只可以讓Hykyll產生HTML網頁，得利於Hakyll背後的&lt;a href=&quot;https://pandoc.org/&quot;&gt;Pandoc&lt;/a&gt;的強大能力，只要是Pandoc支援的格式，其實都可以輸出。&lt;/p&gt;
-&lt;p&gt;Pandoc支援許多種Slide格式，像是Slidy，reveal.js，DZSlides
-等等。這篇blog主要會介紹如何讓Hakyll產生reveal.js的格式。&lt;/p&gt;
-&lt;p&gt;在開始之前，我們要先看一下，在Hakyll裡面，一個Item的pandoc
-compile的流程大致是怎麼的。&lt;/p&gt;
-&lt;h2 id=&quot;pandoc-compile-流程&quot;&gt;Pandoc Compile 流程&lt;/h2&gt;
-&lt;p&gt;利用下面的函式，我們可以把一個Item，經過Pandoc之後，轉換成HTML格式。&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;-- 讀取檔案內容&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;getResourceBody ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Compiler&lt;/span&gt; (&lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb1-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;-- 將檔案內容轉換為Pandoc內部資料結構&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;readPandoc ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;  &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Compiler&lt;/span&gt; (&lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Pandoc&lt;/span&gt;) &lt;/span&gt;
-&lt;span id=&quot;cb1-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;-- 從Pandoc內部資料結構轉換為HTML格式&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;writePandoc ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Pandoc&lt;/span&gt; &lt;/span&gt;
-&lt;span id=&quot;cb1-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;            &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt; &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;也就是可以組合成下面的 snippet：&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;compile &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;do&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;          getResourceBody&lt;/span&gt;
-&lt;span id=&quot;cb2-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;          &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; readPandoc&lt;/span&gt;
-&lt;span id=&quot;cb2-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;          &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; writePandoc&lt;/span&gt;
-&lt;span id=&quot;cb2-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;          &lt;span class=&quot;co&quot;&gt;-- ....&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;因為這個套路蠻固定的，所以Hakyll直接提供了一個&lt;code&gt;pandocCompiler&lt;/code&gt;，等同於上面三個的組合&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb3&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb3-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;co&quot;&gt;-- 讀取檔案內容，經由Pandoc處理後輸出。&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;pandocCompiler ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Compiler&lt;/span&gt; (&lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;這邊要注意的是，&lt;code&gt;writePandoc&lt;/code&gt;
-必定是產生HTML格式，也就是說，它呼叫的是Pandoc的&lt;a href=&quot;https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeHtml5String&quot;&gt;writeHtml5String&lt;/a&gt;這個函式。但因為我們想要產生reveal.js格式，所以應該要使用&lt;a href=&quot;https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeRevealJs&quot;&gt;writeRevealJs&lt;/a&gt;函式才對。&lt;/p&gt;
-&lt;h2 id=&quot;定義自己的-writepandoc&quot;&gt;定義自己的 writePandoc&lt;/h2&gt;
-&lt;p&gt;也就是說，我們不能使用預設的&lt;code&gt;writePandoc&lt;/code&gt;函式，而應該自定義一個&lt;code&gt;writePandocToRevealJs&lt;/code&gt;，並在裡面呼叫Pandoc的&lt;a href=&quot;https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeRevealJs&quot;&gt;writeRevealJs&lt;/a&gt;函式。&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb4&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb4-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;writePandocToRevealJs ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Pandoc&lt;/span&gt; &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Compiler&lt;/span&gt; (&lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;)&lt;/span&gt;
-&lt;span id=&quot;cb4-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;writePandocToRevealJs &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;traverse&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; \pandoc &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  &lt;span class=&quot;kw&quot;&gt;case&lt;/span&gt; runPure (PandocWriter.writeRevealJs slidesWriterOptions pandoc) &lt;span class=&quot;kw&quot;&gt;of&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;dt&quot;&gt;Left&lt;/span&gt; err &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;fail&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;show&lt;/span&gt; err&lt;/span&gt;
-&lt;span id=&quot;cb4-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;dt&quot;&gt;Right&lt;/span&gt; x &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;return&lt;/span&gt; (T.unpack x)&lt;/span&gt;
-&lt;span id=&quot;cb4-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;slidesWriterOptions ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;WriterOptions&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;slidesWriterOptions &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  defaultHakyllWriterOptions&lt;/span&gt;
-&lt;span id=&quot;cb4-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    { writerHTMLMathMethod &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;MathJax&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;&quot;&lt;/span&gt; &lt;span class=&quot;co&quot;&gt;-- 使用MathJax&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    }&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;而整個Rule monad就會像下列這樣：&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb5&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb5-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  match &lt;span class=&quot;st&quot;&gt;&quot;slides/*&quot;&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;kw&quot;&gt;do&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;      route &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; setExtension &lt;span class=&quot;st&quot;&gt;&quot;html&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;      compile &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb5-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;kw&quot;&gt;do&lt;/span&gt; getResourceBody&lt;/span&gt;
-&lt;span id=&quot;cb5-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;          &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; readPandoc&lt;/span&gt;
-&lt;span id=&quot;cb5-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;          &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; writePandocToRevealJs&lt;/span&gt;
-&lt;span id=&quot;cb5-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;          &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; loadAndApplyTemplate &lt;span class=&quot;st&quot;&gt;&quot;templates/revealjs.html&quot;&lt;/span&gt; postCtx&lt;/span&gt;
-&lt;span id=&quot;cb5-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;          &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; relativizeUrls&lt;/span&gt;
-&lt;span id=&quot;cb5-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb5-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/section&gt;&lt;/article&gt;&lt;comment&gt;&lt;script async=&quot;async&quot; crossorigin=&quot;anonymous&quot; data-category=&quot;General&quot; data-category-id=&quot;DIC_kwDOD5Bpa84COAIg&quot; data-emit-metadata=&quot;0&quot; data-input-position=&quot;top&quot; data-lang=&quot;en&quot; data-mapping=&quot;pathname&quot; data-reactions-enabled=&quot;0&quot; data-repo=&quot;onemouth/onemouth.github.io&quot; data-repo-id=&quot;MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=&quot; data-theme=&quot;light&quot; src=&quot;https://giscus.app/client.js&quot;&gt;&lt;/script&gt;&lt;script async=&quot;async&quot; src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/comment&gt;&lt;/div&gt;&lt;/main&gt;&lt;footer&gt;Site generated by pandoc and babashka&lt;/footer&gt;
-&lt;/body&gt;&lt;/html&gt;
-]]&gt;</summary></entry><entry><title>如何在Hakyll中設定Atom/RSS Feed</title><link href="https://onemouth.github.io/posts/2022-05-06-hakyll-atom-setup.html" /><id>https://onemouth.github.io/posts/2022-05-06-hakyll-atom-setup.html</id><published>2022-05-06T12:00:00+08:00</published><updated>2022-05-06T12:00:00+08:00</updated><summary type="html">&lt;![CDATA[&lt;html lang=&quot;en&quot;&gt;&lt;body&gt;&lt;header&gt;&lt;div class=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Put some ink into the inkpot&lt;/a&gt;&lt;/div&gt;&lt;/header&gt;&lt;main&gt;&lt;div&gt;&lt;article&gt;&lt;h1&gt;如何在Hakyll中設定Atom/RSS
-Feed&lt;/h1&gt;&lt;section class=&quot;header&quot;&gt;
+</section><section><p>我們不只可以讓Hykyll產生HTML網頁，得利於Hakyll背後的<a href="https://pandoc.org/">Pandoc</a>的強大能力，只要是Pandoc支援的格式，其實都可以輸出。</p>
+<p>Pandoc支援許多種Slide格式，像是Slidy，reveal.js，DZSlides
+等等。這篇blog主要會介紹如何讓Hakyll產生reveal.js的格式。</p>
+<p>在開始之前，我們要先看一下，在Hakyll裡面，一個Item的pandoc
+compile的流程大致是怎麼的。</p>
+<h2 id="pandoc-compile-流程">Pandoc Compile 流程</h2>
+<p>利用下面的函式，我們可以把一個Item，經過Pandoc之後，轉換成HTML格式。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a aria-hidden="true" href="#cb1-1" tabindex="-1"></a><span class="co">-- 讀取檔案內容</span></span>
+<span id="cb1-2"><a aria-hidden="true" href="#cb1-2" tabindex="-1"></a><span class="ot">getResourceBody ::</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</span>
+<span id="cb1-3"><a aria-hidden="true" href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a aria-hidden="true" href="#cb1-4" tabindex="-1"></a><span class="co">-- 將檔案內容轉換為Pandoc內部資料結構</span></span>
+<span id="cb1-5"><a aria-hidden="true" href="#cb1-5" tabindex="-1"></a><span class="ot">readPandoc ::</span> <span class="dt">Item</span> <span class="dt">String</span>  <span class="ot">-&gt;</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">Pandoc</span>) </span>
+<span id="cb1-6"><a aria-hidden="true" href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a aria-hidden="true" href="#cb1-7" tabindex="-1"></a><span class="co">-- 從Pandoc內部資料結構轉換為HTML格式</span></span>
+<span id="cb1-8"><a aria-hidden="true" href="#cb1-8" tabindex="-1"></a><span class="ot">writePandoc ::</span> <span class="dt">Item</span> <span class="dt">Pandoc</span> </span>
+<span id="cb1-9"><a aria-hidden="true" href="#cb1-9" tabindex="-1"></a>            <span class="ot">-&gt;</span> <span class="dt">Item</span> <span class="dt">String</span> </span></code></pre></div>
+<p>也就是可以組合成下面的 snippet：</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a aria-hidden="true" href="#cb2-1" tabindex="-1"></a>compile <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb2-2"><a aria-hidden="true" href="#cb2-2" tabindex="-1"></a>          getResourceBody</span>
+<span id="cb2-3"><a aria-hidden="true" href="#cb2-3" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> readPandoc</span>
+<span id="cb2-4"><a aria-hidden="true" href="#cb2-4" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> writePandoc</span>
+<span id="cb2-5"><a aria-hidden="true" href="#cb2-5" tabindex="-1"></a>          <span class="co">-- ....</span></span></code></pre></div>
+<p>因為這個套路蠻固定的，所以Hakyll直接提供了一個<code>pandocCompiler</code>，等同於上面三個的組合</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a aria-hidden="true" href="#cb3-1" tabindex="-1"></a><span class="co">-- 讀取檔案內容，經由Pandoc處理後輸出。</span></span>
+<span id="cb3-2"><a aria-hidden="true" href="#cb3-2" tabindex="-1"></a><span class="ot">pandocCompiler ::</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</span></code></pre></div>
+<p>這邊要注意的是，<code>writePandoc</code>
+必定是產生HTML格式，也就是說，它呼叫的是Pandoc的<a href="https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeHtml5String">writeHtml5String</a>這個函式。但因為我們想要產生reveal.js格式，所以應該要使用<a href="https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeRevealJs">writeRevealJs</a>函式才對。</p>
+<h2 id="定義自己的-writepandoc">定義自己的 writePandoc</h2>
+<p>也就是說，我們不能使用預設的<code>writePandoc</code>函式，而應該自定義一個<code>writePandocToRevealJs</code>，並在裡面呼叫Pandoc的<a href="https://hackage.haskell.org/package/pandoc-2.2/docs/Text-Pandoc-Writers-HTML.html#v:writeRevealJs">writeRevealJs</a>函式。</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a aria-hidden="true" href="#cb4-1" tabindex="-1"></a><span class="ot">writePandocToRevealJs ::</span> <span class="dt">Item</span> <span class="dt">Pandoc</span> <span class="ot">-&gt;</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</span>
+<span id="cb4-2"><a aria-hidden="true" href="#cb4-2" tabindex="-1"></a>writePandocToRevealJs <span class="ot">=</span> <span class="fu">traverse</span> <span class="op">$</span> \pandoc <span class="ot">-&gt;</span></span>
+<span id="cb4-3"><a aria-hidden="true" href="#cb4-3" tabindex="-1"></a>  <span class="kw">case</span> runPure (PandocWriter.writeRevealJs slidesWriterOptions pandoc) <span class="kw">of</span></span>
+<span id="cb4-4"><a aria-hidden="true" href="#cb4-4" tabindex="-1"></a>    <span class="dt">Left</span> err <span class="ot">-&gt;</span> <span class="fu">fail</span> <span class="op">$</span> <span class="fu">show</span> err</span>
+<span id="cb4-5"><a aria-hidden="true" href="#cb4-5" tabindex="-1"></a>    <span class="dt">Right</span> x <span class="ot">-&gt;</span> <span class="fu">return</span> (T.unpack x)</span>
+<span id="cb4-6"><a aria-hidden="true" href="#cb4-6" tabindex="-1"></a></span>
+<span id="cb4-7"><a aria-hidden="true" href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-8"><a aria-hidden="true" href="#cb4-8" tabindex="-1"></a><span class="ot">slidesWriterOptions ::</span> <span class="dt">WriterOptions</span></span>
+<span id="cb4-9"><a aria-hidden="true" href="#cb4-9" tabindex="-1"></a>slidesWriterOptions <span class="ot">=</span></span>
+<span id="cb4-10"><a aria-hidden="true" href="#cb4-10" tabindex="-1"></a>  defaultHakyllWriterOptions</span>
+<span id="cb4-11"><a aria-hidden="true" href="#cb4-11" tabindex="-1"></a>    { writerHTMLMathMethod <span class="ot">=</span> <span class="dt">MathJax</span> <span class="st">""</span> <span class="co">-- 使用MathJax</span></span>
+<span id="cb4-12"><a aria-hidden="true" href="#cb4-12" tabindex="-1"></a>    }</span></code></pre></div>
+<p>而整個Rule monad就會像下列這樣：</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a aria-hidden="true" href="#cb5-1" tabindex="-1"></a>  match <span class="st">"slides/*"</span> <span class="op">$</span></span>
+<span id="cb5-2"><a aria-hidden="true" href="#cb5-2" tabindex="-1"></a>    <span class="kw">do</span></span>
+<span id="cb5-3"><a aria-hidden="true" href="#cb5-3" tabindex="-1"></a>      route <span class="op">$</span> setExtension <span class="st">"html"</span></span>
+<span id="cb5-4"><a aria-hidden="true" href="#cb5-4" tabindex="-1"></a>      compile <span class="op">$</span></span>
+<span id="cb5-5"><a aria-hidden="true" href="#cb5-5" tabindex="-1"></a>        <span class="kw">do</span> getResourceBody</span>
+<span id="cb5-6"><a aria-hidden="true" href="#cb5-6" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> readPandoc</span>
+<span id="cb5-7"><a aria-hidden="true" href="#cb5-7" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> writePandocToRevealJs</span>
+<span id="cb5-8"><a aria-hidden="true" href="#cb5-8" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">"templates/revealjs.html"</span> postCtx</span>
+<span id="cb5-9"><a aria-hidden="true" href="#cb5-9" tabindex="-1"></a>          <span class="op">&gt;&gt;=</span> relativizeUrls</span>
+<span id="cb5-10"><a aria-hidden="true" href="#cb5-10" tabindex="-1"></a></span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry><entry><title>如何在Hakyll中設定Atom/RSS Feed</title><link href="https://onemouth.github.io/posts/2022-05-06-hakyll-atom-setup.html" /><id>https://onemouth.github.io/posts/2022-05-06-hakyll-atom-setup.html</id><published>2022-05-06T12:00:00+08:00</published><updated>2022-05-06T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>如何在Hakyll中設定Atom/RSS
+Feed</h1><section class="header">
 Posted on May 06, 2022
 by LT
-&lt;/section&gt;&lt;section&gt;&lt;p&gt;首先這是產生Atom Feed 的function：&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb1&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb1-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;renderAtom ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;FeedConfiguration&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;           &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Context&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb1-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;           &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt; [&lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;]&lt;/span&gt;
-&lt;span id=&quot;cb1-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb1-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;           &lt;span class=&quot;ot&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Compiler&lt;/span&gt; (&lt;span class=&quot;dt&quot;&gt;Item&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;從function signature
-可以猜出來，第一個參數是關於Configuration，第二個參數我們先不管它，第三個參數是&lt;code&gt;[Item String]&lt;/code&gt;，也就是我們要產生Feed的主要內容。因為&lt;code&gt;renderAtom&lt;/code&gt;的返回值是一個&lt;code&gt;Compiler (Item String)&lt;/code&gt;，所以我們可以直接傳給compiler
-function：&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb2&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb2-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  match &lt;span class=&quot;st&quot;&gt;&quot;posts/*&quot;&lt;/span&gt; &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;do&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    route &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; setExtension &lt;span class=&quot;st&quot;&gt;&quot;html&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    compile &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; pandocCompiler&lt;/span&gt;
-&lt;span id=&quot;cb2-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; loadAndApplyTemplate &lt;span class=&quot;st&quot;&gt;&quot;templates/post.html&quot;&lt;/span&gt;    postCtx&lt;/span&gt;
-&lt;span id=&quot;cb2-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; saveSnapshot &lt;span class=&quot;st&quot;&gt;&quot;content&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; loadAndApplyTemplate &lt;span class=&quot;st&quot;&gt;&quot;templates/default.html&quot;&lt;/span&gt; postCtx&lt;/span&gt;
-&lt;span id=&quot;cb2-8&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-8&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;        &lt;span class=&quot;op&quot;&gt;&amp;gt;&amp;gt;=&lt;/span&gt; relativizeUrls&lt;/span&gt;
-&lt;span id=&quot;cb2-9&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-9&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-10&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-10&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  create [&lt;span class=&quot;st&quot;&gt;&quot;atom.xml&quot;&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;do&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-11&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-11&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    route idRoute&lt;/span&gt;
-&lt;span id=&quot;cb2-12&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-12&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    compile &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;do&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-13&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-13&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;      posts &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;fmap&lt;/span&gt; (&lt;span class=&quot;fu&quot;&gt;take&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;15&lt;/span&gt;) &lt;span class=&quot;op&quot;&gt;.&lt;/span&gt; recentFirst &lt;span class=&quot;op&quot;&gt;=&amp;lt;&amp;lt;&lt;/span&gt; loadAllSnapshots &lt;span class=&quot;st&quot;&gt;&quot;posts/*&quot;&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;content&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-14&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-14&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;      renderAtom feedConfiguration &lt;span class=&quot;op&quot;&gt;?&lt;/span&gt; posts&lt;/span&gt;
-&lt;span id=&quot;cb2-15&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-15&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-16&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-16&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt; feedConfiguration ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;FeedConfiguration&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-17&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-17&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt; feedConfiguration &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-18&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-18&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;   &lt;span class=&quot;dt&quot;&gt;FeedConfiguration&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-19&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-19&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;   { feedTitle &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;Put some ink into the inkpot&quot;&lt;/span&gt;,&lt;/span&gt;
-&lt;span id=&quot;cb2-20&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-20&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;     feedDescription &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;Put some ink into the inkpot - a personal blog&quot;&lt;/span&gt;,&lt;/span&gt;
-&lt;span id=&quot;cb2-21&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-21&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;     feedAuthorName &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;LT Tsai&quot;&lt;/span&gt;,&lt;/span&gt;
-&lt;span id=&quot;cb2-22&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-22&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;     feedAuthorEmail &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;lt@ltt.pw&quot;&lt;/span&gt;,&lt;/span&gt;
-&lt;span id=&quot;cb2-23&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-23&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;     feedRoot &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;https://onemouth.github.io&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb2-24&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb2-24&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;   }&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;那我們現在就只剩下第二個參數&lt;code&gt;Context String&lt;/code&gt;了，首先我們要知道，在Hakyll中，&lt;code&gt;Context&lt;/code&gt;代表的是很多key-value所形成的一個集合。此外，
-&lt;code&gt;Context&lt;/code&gt;是一個Monoid，所以用&lt;code&gt;mappend&lt;/code&gt;就可以新增key-value到&lt;code&gt;Conxtext&lt;/code&gt;裡面。而當template需要某一個key的值，就可以從&lt;code&gt;Context&lt;/code&gt;中獲得。&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb3&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb3-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;postCtx ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Context&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;postCtx &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  dateField &lt;span class=&quot;st&quot;&gt;&quot;date&quot;&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;%B %e, %Y&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    &lt;span class=&quot;ot&quot;&gt;`mappend`&lt;/span&gt; defaultContext&lt;/span&gt;
-&lt;span id=&quot;cb3-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-6&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-6&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;&lt;span class=&quot;ot&quot;&gt;feedCtx ::&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;Context&lt;/span&gt; &lt;span class=&quot;dt&quot;&gt;String&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb3-7&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb3-7&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;feedCtx &lt;span class=&quot;ot&quot;&gt;=&lt;/span&gt; postCtx &lt;span class=&quot;op&quot;&gt;&amp;lt;&amp;gt;&lt;/span&gt; bodyField &lt;span class=&quot;st&quot;&gt;&quot;description&quot;&lt;/span&gt; &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;defaultContext裡面的key包括:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;$body$&lt;/code&gt;: Item 的內容&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;$url$&lt;/code&gt;: Item 的URL&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;$path$&lt;/code&gt;: Item 的原始檔案路徑&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;$foo$&lt;/code&gt;: 任何包括在Metadata中的資料&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;defaultContext
-並不包含date的資訊，所以我們用&lt;code&gt;dateField&lt;/code&gt;把寫在檔案路徑的日期parse出來，並放在&lt;code&gt;postCtx&lt;/code&gt;裡面。&lt;/p&gt;
-&lt;p&gt;另外，在feed的預設template裡面，需要一個description的key，而在目前大部分RSS的網站實作中，description都是直接放文章的完整內容，所以這邊我們用&lt;code&gt;bodyField&lt;/code&gt;，把description指向body的內容。&lt;/p&gt;
-&lt;p&gt;最後，我們產生Feed的程式碼就像這樣：&lt;/p&gt;
-&lt;div class=&quot;sourceCode&quot; id=&quot;cb4&quot;&gt;&lt;pre class=&quot;sourceCode haskell&quot;&gt;&lt;code class=&quot;sourceCode haskell&quot;&gt;&lt;span id=&quot;cb4-1&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-1&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;  create [&lt;span class=&quot;st&quot;&gt;&quot;atom.xml&quot;&lt;/span&gt;] &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;do&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-2&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-2&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    route idRoute&lt;/span&gt;
-&lt;span id=&quot;cb4-3&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-3&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;    compile &lt;span class=&quot;op&quot;&gt;$&lt;/span&gt; &lt;span class=&quot;kw&quot;&gt;do&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-4&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-4&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;      posts &lt;span class=&quot;ot&quot;&gt;&amp;lt;-&lt;/span&gt; &lt;span class=&quot;fu&quot;&gt;fmap&lt;/span&gt; (&lt;span class=&quot;fu&quot;&gt;take&lt;/span&gt; &lt;span class=&quot;dv&quot;&gt;15&lt;/span&gt;) &lt;span class=&quot;op&quot;&gt;.&lt;/span&gt; recentFirst &lt;span class=&quot;op&quot;&gt;=&amp;lt;&amp;lt;&lt;/span&gt; loadAllSnapshots &lt;span class=&quot;st&quot;&gt;&quot;posts/*&quot;&lt;/span&gt; &lt;span class=&quot;st&quot;&gt;&quot;content&quot;&lt;/span&gt;&lt;/span&gt;
-&lt;span id=&quot;cb4-5&quot;&gt;&lt;a aria-hidden=&quot;true&quot; href=&quot;#cb4-5&quot; tabindex=&quot;-1&quot;&gt;&lt;/a&gt;      renderAtom feedConfiguration feedCtx posts&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/section&gt;&lt;/article&gt;&lt;comment&gt;&lt;script async=&quot;async&quot; crossorigin=&quot;anonymous&quot; data-category=&quot;General&quot; data-category-id=&quot;DIC_kwDOD5Bpa84COAIg&quot; data-emit-metadata=&quot;0&quot; data-input-position=&quot;top&quot; data-lang=&quot;en&quot; data-mapping=&quot;pathname&quot; data-reactions-enabled=&quot;0&quot; data-repo=&quot;onemouth/onemouth.github.io&quot; data-repo-id=&quot;MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=&quot; data-theme=&quot;light&quot; src=&quot;https://giscus.app/client.js&quot;&gt;&lt;/script&gt;&lt;script async=&quot;async&quot; src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/comment&gt;&lt;/div&gt;&lt;/main&gt;&lt;footer&gt;Site generated by pandoc and babashka&lt;/footer&gt;
-&lt;/body&gt;&lt;/html&gt;
-]]&gt;</summary></entry><entry><title>iCloud上的酷東西-自訂電子郵件網域</title><link href="https://onemouth.github.io/posts/2022-05-03-icloud-cool-things.html" /><id>https://onemouth.github.io/posts/2022-05-03-icloud-cool-things.html</id><published>2022-05-03T12:00:00+08:00</published><updated>2022-05-03T12:00:00+08:00</updated><summary type="html">&lt;![CDATA[&lt;html lang=&quot;en&quot;&gt;&lt;body&gt;&lt;header&gt;&lt;div class=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Put some ink into the inkpot&lt;/a&gt;&lt;/div&gt;&lt;/header&gt;&lt;main&gt;&lt;div&gt;&lt;article&gt;&lt;h1&gt;iCloud上的酷東西-自訂電子郵件網域&lt;/h1&gt;&lt;section class=&quot;header&quot;&gt;
+</section><section><p>首先這是產生Atom Feed 的function：</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a aria-hidden="true" href="#cb1-1" tabindex="-1"></a><span class="ot">renderAtom ::</span> <span class="dt">FeedConfiguration</span></span>
+<span id="cb1-2"><a aria-hidden="true" href="#cb1-2" tabindex="-1"></a>           <span class="ot">-&gt;</span> <span class="dt">Context</span> <span class="dt">String</span></span>
+<span id="cb1-3"><a aria-hidden="true" href="#cb1-3" tabindex="-1"></a>           <span class="ot">-&gt;</span> [<span class="dt">Item</span> <span class="dt">String</span>]</span>
+<span id="cb1-4"><a aria-hidden="true" href="#cb1-4" tabindex="-1"></a>           <span class="ot">-&gt;</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</span></code></pre></div>
+<p>從function signature
+可以猜出來，第一個參數是關於Configuration，第二個參數我們先不管它，第三個參數是<code>[Item String]</code>，也就是我們要產生Feed的主要內容。因為<code>renderAtom</code>的返回值是一個<code>Compiler (Item String)</code>，所以我們可以直接傳給compiler
+function：</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a aria-hidden="true" href="#cb2-1" tabindex="-1"></a></span>
+<span id="cb2-2"><a aria-hidden="true" href="#cb2-2" tabindex="-1"></a>  match <span class="st">"posts/*"</span> <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb2-3"><a aria-hidden="true" href="#cb2-3" tabindex="-1"></a>    route <span class="op">$</span> setExtension <span class="st">"html"</span></span>
+<span id="cb2-4"><a aria-hidden="true" href="#cb2-4" tabindex="-1"></a>    compile <span class="op">$</span> pandocCompiler</span>
+<span id="cb2-5"><a aria-hidden="true" href="#cb2-5" tabindex="-1"></a>        <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">"templates/post.html"</span>    postCtx</span>
+<span id="cb2-6"><a aria-hidden="true" href="#cb2-6" tabindex="-1"></a>        <span class="op">&gt;&gt;=</span> saveSnapshot <span class="st">"content"</span></span>
+<span id="cb2-7"><a aria-hidden="true" href="#cb2-7" tabindex="-1"></a>        <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">"templates/default.html"</span> postCtx</span>
+<span id="cb2-8"><a aria-hidden="true" href="#cb2-8" tabindex="-1"></a>        <span class="op">&gt;&gt;=</span> relativizeUrls</span>
+<span id="cb2-9"><a aria-hidden="true" href="#cb2-9" tabindex="-1"></a></span>
+<span id="cb2-10"><a aria-hidden="true" href="#cb2-10" tabindex="-1"></a>  create [<span class="st">"atom.xml"</span>] <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb2-11"><a aria-hidden="true" href="#cb2-11" tabindex="-1"></a>    route idRoute</span>
+<span id="cb2-12"><a aria-hidden="true" href="#cb2-12" tabindex="-1"></a>    compile <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb2-13"><a aria-hidden="true" href="#cb2-13" tabindex="-1"></a>      posts <span class="ot">&lt;-</span> <span class="fu">fmap</span> (<span class="fu">take</span> <span class="dv">15</span>) <span class="op">.</span> recentFirst <span class="op">=&lt;&lt;</span> loadAllSnapshots <span class="st">"posts/*"</span> <span class="st">"content"</span></span>
+<span id="cb2-14"><a aria-hidden="true" href="#cb2-14" tabindex="-1"></a>      renderAtom feedConfiguration <span class="op">?</span> posts</span>
+<span id="cb2-15"><a aria-hidden="true" href="#cb2-15" tabindex="-1"></a></span>
+<span id="cb2-16"><a aria-hidden="true" href="#cb2-16" tabindex="-1"></a><span class="ot"> feedConfiguration ::</span> <span class="dt">FeedConfiguration</span></span>
+<span id="cb2-17"><a aria-hidden="true" href="#cb2-17" tabindex="-1"></a> feedConfiguration <span class="ot">=</span></span>
+<span id="cb2-18"><a aria-hidden="true" href="#cb2-18" tabindex="-1"></a>   <span class="dt">FeedConfiguration</span></span>
+<span id="cb2-19"><a aria-hidden="true" href="#cb2-19" tabindex="-1"></a>   { feedTitle <span class="ot">=</span> <span class="st">"Put some ink into the inkpot"</span>,</span>
+<span id="cb2-20"><a aria-hidden="true" href="#cb2-20" tabindex="-1"></a>     feedDescription <span class="ot">=</span> <span class="st">"Put some ink into the inkpot - a personal blog"</span>,</span>
+<span id="cb2-21"><a aria-hidden="true" href="#cb2-21" tabindex="-1"></a>     feedAuthorName <span class="ot">=</span> <span class="st">"LT Tsai"</span>,</span>
+<span id="cb2-22"><a aria-hidden="true" href="#cb2-22" tabindex="-1"></a>     feedAuthorEmail <span class="ot">=</span> <span class="st">"lt@ltt.pw"</span>,</span>
+<span id="cb2-23"><a aria-hidden="true" href="#cb2-23" tabindex="-1"></a>     feedRoot <span class="ot">=</span> <span class="st">"https://onemouth.github.io"</span></span>
+<span id="cb2-24"><a aria-hidden="true" href="#cb2-24" tabindex="-1"></a>   }</span></code></pre></div>
+<p>那我們現在就只剩下第二個參數<code>Context String</code>了，首先我們要知道，在Hakyll中，<code>Context</code>代表的是很多key-value所形成的一個集合。此外，
+<code>Context</code>是一個Monoid，所以用<code>mappend</code>就可以新增key-value到<code>Conxtext</code>裡面。而當template需要某一個key的值，就可以從<code>Context</code>中獲得。</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a aria-hidden="true" href="#cb3-1" tabindex="-1"></a><span class="ot">postCtx ::</span> <span class="dt">Context</span> <span class="dt">String</span></span>
+<span id="cb3-2"><a aria-hidden="true" href="#cb3-2" tabindex="-1"></a>postCtx <span class="ot">=</span></span>
+<span id="cb3-3"><a aria-hidden="true" href="#cb3-3" tabindex="-1"></a>  dateField <span class="st">"date"</span> <span class="st">"%B %e, %Y"</span></span>
+<span id="cb3-4"><a aria-hidden="true" href="#cb3-4" tabindex="-1"></a>    <span class="ot">`mappend`</span> defaultContext</span>
+<span id="cb3-5"><a aria-hidden="true" href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a aria-hidden="true" href="#cb3-6" tabindex="-1"></a><span class="ot">feedCtx ::</span> <span class="dt">Context</span> <span class="dt">String</span></span>
+<span id="cb3-7"><a aria-hidden="true" href="#cb3-7" tabindex="-1"></a>feedCtx <span class="ot">=</span> postCtx <span class="op">&lt;&gt;</span> bodyField <span class="st">"description"</span> </span></code></pre></div>
+<p>defaultContext裡面的key包括:</p>
+<ul>
+<li><code>$body$</code>: Item 的內容</li>
+<li><code>$url$</code>: Item 的URL</li>
+<li><code>$path$</code>: Item 的原始檔案路徑</li>
+<li><code>$foo$</code>: 任何包括在Metadata中的資料</li>
+</ul>
+<p>defaultContext
+並不包含date的資訊，所以我們用<code>dateField</code>把寫在檔案路徑的日期parse出來，並放在<code>postCtx</code>裡面。</p>
+<p>另外，在feed的預設template裡面，需要一個description的key，而在目前大部分RSS的網站實作中，description都是直接放文章的完整內容，所以這邊我們用<code>bodyField</code>，把description指向body的內容。</p>
+<p>最後，我們產生Feed的程式碼就像這樣：</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a aria-hidden="true" href="#cb4-1" tabindex="-1"></a>  create [<span class="st">"atom.xml"</span>] <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb4-2"><a aria-hidden="true" href="#cb4-2" tabindex="-1"></a>    route idRoute</span>
+<span id="cb4-3"><a aria-hidden="true" href="#cb4-3" tabindex="-1"></a>    compile <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb4-4"><a aria-hidden="true" href="#cb4-4" tabindex="-1"></a>      posts <span class="ot">&lt;-</span> <span class="fu">fmap</span> (<span class="fu">take</span> <span class="dv">15</span>) <span class="op">.</span> recentFirst <span class="op">=&lt;&lt;</span> loadAllSnapshots <span class="st">"posts/*"</span> <span class="st">"content"</span></span>
+<span id="cb4-5"><a aria-hidden="true" href="#cb4-5" tabindex="-1"></a>      renderAtom feedConfiguration feedCtx posts</span></code></pre></div></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry><entry><title>iCloud上的酷東西-自訂電子郵件網域</title><link href="https://onemouth.github.io/posts/2022-05-03-icloud-cool-things.html" /><id>https://onemouth.github.io/posts/2022-05-03-icloud-cool-things.html</id><published>2022-05-03T12:00:00+08:00</published><updated>2022-05-03T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>iCloud上的酷東西-自訂電子郵件網域</h1><section class="header">
 Posted on May 03, 2022
 by LT
-&lt;/section&gt;&lt;section&gt;&lt;p&gt;從2019開始就開始訂閱iCloud的儲存空間200G，因為免費的5GB實在不夠，加上可以和家人共享，就一直訂閱著，平常也不會去注意它有什麼新功能。&lt;/p&gt;
-&lt;p&gt;最近才發現，這個訂閱服務早在2021就變成了&lt;a href=&quot;https://support.apple.com/zh-tw/HT201238&quot;&gt;iCloud
-Plus&lt;/a&gt;，主要增加了幾個功能:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;隱藏我的電子郵件&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;https://support.apple.com/en-us/HT212514&quot;&gt;自訂電子郵件網域&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;HomeKit安全錄影&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;剛好最近手上有個網域，我也一直想用綁個自己網域的email帳號，而不要再用&lt;code&gt;@gmail.com&lt;/code&gt;，因為用自己的網域，感覺比較專業(?)&lt;/p&gt;
-&lt;p&gt;當然也可以考慮自己架，收信似乎不難，但是寄信非常容易被當成垃圾郵件丟掉，要設定好&lt;a href=&quot;https://en.wikipedia.org/wiki/Sender_Policy_Framework&quot;&gt;SPF&lt;/a&gt;，&lt;a href=&quot;https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail&quot;&gt;DKIM&lt;/a&gt;和&lt;a href=&quot;https://en.wikipedia.org/wiki/DMARC&quot;&gt;DMARC&lt;/a&gt;之類東西的樣子…所以網路上建議寄信的話再轉給Amazon
-SES處理，想想還是蠻複雜的。&lt;/p&gt;
-&lt;p&gt;雲端服務的話，Gmail只有企業版才提供自訂網域的功能，其他像&lt;a href=&quot;https://protonmail.com/support/knowledge-base/paid-plans/&quot;&gt;ProtonMail&lt;/a&gt;雖然在付費版也有提供自訂網域，但每個月還要再多付約100元台幣訂閱，想了想，還是用iCloud
-Plus的就好，畢竟加量不加價！&lt;/p&gt;
-&lt;p&gt;我的email： lt at ltt.pw&lt;/p&gt;
-&lt;p&gt;請多指教!&lt;/p&gt;&lt;/section&gt;&lt;/article&gt;&lt;comment&gt;&lt;script async=&quot;async&quot; crossorigin=&quot;anonymous&quot; data-category=&quot;General&quot; data-category-id=&quot;DIC_kwDOD5Bpa84COAIg&quot; data-emit-metadata=&quot;0&quot; data-input-position=&quot;top&quot; data-lang=&quot;en&quot; data-mapping=&quot;pathname&quot; data-reactions-enabled=&quot;0&quot; data-repo=&quot;onemouth/onemouth.github.io&quot; data-repo-id=&quot;MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=&quot; data-theme=&quot;light&quot; src=&quot;https://giscus.app/client.js&quot;&gt;&lt;/script&gt;&lt;script async=&quot;async&quot; src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/comment&gt;&lt;/div&gt;&lt;/main&gt;&lt;footer&gt;Site generated by pandoc and babashka&lt;/footer&gt;
-&lt;/body&gt;&lt;/html&gt;
-]]&gt;</summary></entry><entry><title>10隻老鼠和1000個瓶子，其中一瓶有毒藥</title><link href="https://onemouth.github.io/posts/2022-03-12-poision-and-rats.html" /><id>https://onemouth.github.io/posts/2022-03-12-poision-and-rats.html</id><published>2022-03-12T12:00:00+08:00</published><updated>2022-03-12T12:00:00+08:00</updated><summary type="html">&lt;![CDATA[&lt;html lang=&quot;en&quot;&gt;&lt;body&gt;&lt;header&gt;&lt;div class=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Put some ink into the inkpot&lt;/a&gt;&lt;/div&gt;&lt;/header&gt;&lt;main&gt;&lt;div&gt;&lt;article&gt;&lt;h1&gt;10隻老鼠和1000個瓶子，其中一瓶有毒藥&lt;/h1&gt;&lt;section class=&quot;header&quot;&gt;
+</section><section><p>從2019開始就開始訂閱iCloud的儲存空間200G，因為免費的5GB實在不夠，加上可以和家人共享，就一直訂閱著，平常也不會去注意它有什麼新功能。</p>
+<p>最近才發現，這個訂閱服務早在2021就變成了<a href="https://support.apple.com/zh-tw/HT201238">iCloud
+Plus</a>，主要增加了幾個功能:</p>
+<ul>
+<li>隱藏我的電子郵件</li>
+<li><a href="https://support.apple.com/en-us/HT212514">自訂電子郵件網域</a></li>
+<li>HomeKit安全錄影</li>
+</ul>
+<p>剛好最近手上有個網域，我也一直想用綁個自己網域的email帳號，而不要再用<code>@gmail.com</code>，因為用自己的網域，感覺比較專業(?)</p>
+<p>當然也可以考慮自己架，收信似乎不難，但是寄信非常容易被當成垃圾郵件丟掉，要設定好<a href="https://en.wikipedia.org/wiki/Sender_Policy_Framework">SPF</a>，<a href="https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail">DKIM</a>和<a href="https://en.wikipedia.org/wiki/DMARC">DMARC</a>之類東西的樣子…所以網路上建議寄信的話再轉給Amazon
+SES處理，想想還是蠻複雜的。</p>
+<p>雲端服務的話，Gmail只有企業版才提供自訂網域的功能，其他像<a href="https://protonmail.com/support/knowledge-base/paid-plans/">ProtonMail</a>雖然在付費版也有提供自訂網域，但每個月還要再多付約100元台幣訂閱，想了想，還是用iCloud
+Plus的就好，畢竟加量不加價！</p>
+<p>我的email： lt at ltt.pw</p>
+<p>請多指教!</p></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry><entry><title>10隻老鼠和1000個瓶子，其中一瓶有毒藥</title><link href="https://onemouth.github.io/posts/2022-03-12-poision-and-rats.html" /><id>https://onemouth.github.io/posts/2022-03-12-poision-and-rats.html</id><published>2022-03-12T12:00:00+08:00</published><updated>2022-03-12T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>10隻老鼠和1000個瓶子，其中一瓶有毒藥</h1><section class="header">
 Posted on Mar 12, 2022
 by LT
-&lt;/section&gt;&lt;section&gt;&lt;p&gt;現在有10隻老鼠和1000個瓶子，其中一瓶有毒藥，另外999瓶裡面是普通的水。從外觀上分辨不出水和毒藥。喝下毒藥的生物會在一星期之後死亡，你如何利用手上的老鼠，在一星期之後，正確回答那個瓶子裡面裝的是毒藥？&lt;/p&gt;
-&lt;p&gt;這是我在面試的時候，被實際問到的問題，當下因為第一個想法是想用binary
+</section><section><p>現在有10隻老鼠和1000個瓶子，其中一瓶有毒藥，另外999瓶裡面是普通的水。從外觀上分辨不出水和毒藥。喝下毒藥的生物會在一星期之後死亡，你如何利用手上的老鼠，在一星期之後，正確回答那個瓶子裡面裝的是毒藥？</p>
+<p>這是我在面試的時候，被實際問到的問題，當下因為第一個想法是想用binary
 search來做，但用binary
-search的話，需要多次實驗，沒辦法在一星期之後立刻得到結果，所以在沒得到進一步提示的情況下，就卡住了。&lt;/p&gt;
-&lt;p&gt;上網找了一下，似乎也是一道經典題了。我們先把問題簡化一下，假設現在是3隻老鼠和8個瓶子，其中一瓶有毒藥，要如何在一星期後找出來呢？&lt;/p&gt;
-&lt;p&gt;因為我們現在手上有3隻老鼠，假設編號為&lt;code&gt;A&lt;/code&gt;,&lt;code&gt;B&lt;/code&gt;,&lt;code&gt;C&lt;/code&gt;，然後我們用&lt;code&gt;1&lt;/code&gt;代表老鼠死亡，用&lt;code&gt;0&lt;/code&gt;代表老鼠存活，在一星期之後全部老鼠的存活情形如下：&lt;/p&gt;
-&lt;table&gt;
-&lt;caption&gt;3隻老鼠的存活狀態&lt;/caption&gt;
-&lt;thead&gt;
-&lt;tr class=&quot;header&quot;&gt;
-&lt;th&gt;A&lt;/th&gt;
-&lt;th&gt;B&lt;/th&gt;
-&lt;th&gt;C&lt;/th&gt;
-&lt;/tr&gt;
-&lt;/thead&gt;
-&lt;tbody&gt;
-&lt;tr class=&quot;odd&quot;&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr class=&quot;even&quot;&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr class=&quot;odd&quot;&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr class=&quot;even&quot;&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr class=&quot;odd&quot;&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr class=&quot;even&quot;&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr class=&quot;odd&quot;&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;0&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr class=&quot;even&quot;&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;td&gt;1&lt;/td&gt;
-&lt;/tr&gt;
-&lt;/tbody&gt;
-&lt;/table&gt;
-&lt;p&gt;也就是說，老鼠的死活情形，剛好有8種
-(2^3)，所以我們可以試著把這8種情形對應到8個瓶子上，假如三隻老鼠都活著，那就是第一個瓶子有毒藥，假如三隻都死了，那就是第八個瓶子有毒藥，以此類推。&lt;/p&gt;
-&lt;p&gt;從這個表，由上往下，就是3隻老鼠個別需要喝的瓶子，&lt;code&gt;A&lt;/code&gt;老鼠需要喝第5,6,7,8號瓶子，&lt;code&gt;B&lt;/code&gt;老鼠需要喝3,4,7,8號瓶子，&lt;code&gt;C&lt;/code&gt;老鼠則需要喝2,4,6,8號瓶子。&lt;/p&gt;
-&lt;p&gt;這是3隻老鼠的情形，瞭解之後，要推廣到10隻老鼠的情形也很容易了！&lt;/p&gt;&lt;/section&gt;&lt;/article&gt;&lt;comment&gt;&lt;script async=&quot;async&quot; crossorigin=&quot;anonymous&quot; data-category=&quot;General&quot; data-category-id=&quot;DIC_kwDOD5Bpa84COAIg&quot; data-emit-metadata=&quot;0&quot; data-input-position=&quot;top&quot; data-lang=&quot;en&quot; data-mapping=&quot;pathname&quot; data-reactions-enabled=&quot;0&quot; data-repo=&quot;onemouth/onemouth.github.io&quot; data-repo-id=&quot;MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=&quot; data-theme=&quot;light&quot; src=&quot;https://giscus.app/client.js&quot;&gt;&lt;/script&gt;&lt;script async=&quot;async&quot; src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/comment&gt;&lt;/div&gt;&lt;/main&gt;&lt;footer&gt;Site generated by pandoc and babashka&lt;/footer&gt;
-&lt;/body&gt;&lt;/html&gt;
-]]&gt;</summary></entry><entry><title>三個學日文必備的瀏覽器擴充套件</title><link href="https://onemouth.github.io/posts/2022-03-10-japanese-plugins.html" /><id>https://onemouth.github.io/posts/2022-03-10-japanese-plugins.html</id><published>2022-03-10T12:00:00+08:00</published><updated>2022-03-10T12:00:00+08:00</updated><summary type="html">&lt;![CDATA[&lt;html lang=&quot;en&quot;&gt;&lt;body&gt;&lt;header&gt;&lt;div class=&quot;logo&quot;&gt;&lt;a href=&quot;/&quot;&gt;Put some ink into the inkpot&lt;/a&gt;&lt;/div&gt;&lt;/header&gt;&lt;main&gt;&lt;div&gt;&lt;article&gt;&lt;h1&gt;三個學日文必備的瀏覽器擴充套件&lt;/h1&gt;&lt;section class=&quot;header&quot;&gt;
+search的話，需要多次實驗，沒辦法在一星期之後立刻得到結果，所以在沒得到進一步提示的情況下，就卡住了。</p>
+<p>上網找了一下，似乎也是一道經典題了。我們先把問題簡化一下，假設現在是3隻老鼠和8個瓶子，其中一瓶有毒藥，要如何在一星期後找出來呢？</p>
+<p>因為我們現在手上有3隻老鼠，假設編號為<code>A</code>,<code>B</code>,<code>C</code>，然後我們用<code>1</code>代表老鼠死亡，用<code>0</code>代表老鼠存活，在一星期之後全部老鼠的存活情形如下：</p>
+<table>
+<caption>3隻老鼠的存活狀態</caption>
+<thead>
+<tr class="header">
+<th>A</th>
+<th>B</th>
+<th>C</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>也就是說，老鼠的死活情形，剛好有8種
+(2^3)，所以我們可以試著把這8種情形對應到8個瓶子上，假如三隻老鼠都活著，那就是第一個瓶子有毒藥，假如三隻都死了，那就是第八個瓶子有毒藥，以此類推。</p>
+<p>從這個表，由上往下，就是3隻老鼠個別需要喝的瓶子，<code>A</code>老鼠需要喝第5,6,7,8號瓶子，<code>B</code>老鼠需要喝3,4,7,8號瓶子，<code>C</code>老鼠則需要喝2,4,6,8號瓶子。</p>
+<p>這是3隻老鼠的情形，瞭解之後，要推廣到10隻老鼠的情形也很容易了！</p></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry><entry><title>三個學日文必備的瀏覽器擴充套件</title><link href="https://onemouth.github.io/posts/2022-03-10-japanese-plugins.html" /><id>https://onemouth.github.io/posts/2022-03-10-japanese-plugins.html</id><published>2022-03-10T12:00:00+08:00</published><updated>2022-03-10T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>三個學日文必備的瀏覽器擴充套件</h1><section class="header">
 Posted on Mar 10, 2022
 by LT
-&lt;/section&gt;&lt;section&gt;&lt;div&gt;&lt;div class=&quot;toc&quot;&gt;&lt;div class=&quot;header&quot;&gt;Table of Contents&lt;/div&gt;&lt;ul&gt;
-&lt;li&gt;&lt;a href=&quot;#yomichan&quot; id=&quot;toc-yomichan&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;1&lt;/span&gt; Yomichan&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#absolute-enable-right-click-copy&quot; id=&quot;toc-absolute-enable-right-click-copy&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;2&lt;/span&gt; Absolute Enable Right Click &amp;amp;
-Copy&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#google-search---geolocation-language-change&quot; id=&quot;toc-google-search---geolocation-language-change&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;3&lt;/span&gt; Google Search - Geolocation &amp;amp;
-Language Change&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;#小結&quot; id=&quot;toc-小結&quot;&gt;&lt;span class=&quot;toc-section-number&quot;&gt;4&lt;/span&gt; 小結&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/div&gt;&lt;div&gt;&lt;p&gt;在學習日文的過程中，也慢慢地使用一些擴充套件來增進學習的效果，所以想介紹三個我覺得是必備的擴充套件。分別為:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;Yomichan (&lt;a href=&quot;https://addons.mozilla.org/zh-TW/firefox/addon/yomichan/&quot;&gt;Firefox&lt;/a&gt;,
-&lt;a href=&quot;https://chrome.google.com/webstore/detail/yomichan/ogmnaimimemjmbakcfefmnahgdfhfami&quot;&gt;Chrome&lt;/a&gt;)&lt;/li&gt;
-&lt;li&gt;Absolute Enable Right Click &amp;amp; Copy (&lt;a href=&quot;https://addons.mozilla.org/zh-TW/firefox/addon/absolute-enable-right-click/&quot;&gt;Firefox&lt;/a&gt;,
-&lt;a href=&quot;https://chrome.google.com/webstore/detail/absolute-enable-right-cli/jdocbkpgdakpekjlhemmfcncgdjeiika&quot;&gt;Chrome&lt;/a&gt;)&lt;/li&gt;
-&lt;li&gt;Google Search - Geolocation &amp;amp; Language Change (&lt;a href=&quot;https://addons.mozilla.org/zh-TW/firefox/addon/googlesearchgeolocationlang/&quot;&gt;Firefox&lt;/a&gt;,
-&lt;a href=&quot;https://chrome.google.com/webstore/detail/google-search-geolocation/gglakldnncaidfodbmpaodhdknnlkjbb&quot;&gt;Chrome&lt;/a&gt;)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;其中Yomichan是最重要的，它是我們主要用來查詢日文的工具，後面兩個則可以起到輔助的作用。&lt;/p&gt;
-&lt;h1 data-number=&quot;1&quot; id=&quot;yomichan&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;1&lt;/span&gt; Yomichan&lt;/h1&gt;
-&lt;p&gt;&lt;a href=&quot;https://foosoft.net/projects/yomichan/&quot;&gt;Yomichan&lt;/a&gt;是一個可以幫助我們在看日文網頁的時候，查詢單字的擴充套件，只要選取網頁上的字，再按下Shift鍵，就可以顯示這個日文單字的意思，十分方便。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/images/yomichan.png&quot;&gt;&lt;/p&gt;
-&lt;p&gt;在安裝完Yomichan之後，是沒有任何字典的，我們必須先手動下載字典檔後，再做一個匯入的動作。&lt;a href=&quot;https://foosoft.net/projects/yomichan/#dictionaries&quot;&gt;字典檔&lt;/a&gt;可以在官網找到。&lt;/p&gt;
-&lt;p&gt;我目前使用的有：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;JMDict (Englsih)&lt;/li&gt;
-&lt;li&gt;JMnedict&lt;/li&gt;
-&lt;li&gt;Kanjium Pitch Accents&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;JMDict是一個免費的日英字典，幾乎絕大部分的字都可以找到。JMnedict則是專門收錄名字的字典，例如姓氏、人名或產品名稱等等，都可以在這個字典找到唸法。Kanjium則是針對日文聲調的部分，它會幫助顯示出這個單字重音的位置。&lt;/p&gt;
-&lt;p&gt;這些字典下載下來之後，是一個zip檔，不需要解壓縮，直接到Yomichan的管理頁面匯入就可以使用了。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/images/yomichan2.png&quot;&gt;&lt;/p&gt;
-&lt;p&gt;另外除了上述資源外，也可以匯入其它的自製字典檔，有興趣的人可以到這個&lt;a href=&quot;https://learnjapanese.moe/&quot;&gt;網站&lt;/a&gt;找尋其他資源。&lt;/p&gt;
-&lt;h1 data-number=&quot;2&quot; id=&quot;absolute-enable-right-click-copy&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;2&lt;/span&gt; Absolute Enable Right Click &amp;amp;
-Copy&lt;/h1&gt;
-&lt;p&gt;有些網頁會禁止我們選取上面的文字，例如歌詞網站或是一些影音串流平台。不能選取的話，我們就不能利用Yomichan來幫忙閱讀了，這時候，就是這個擴充套件出場的時候了。&lt;/p&gt;
-&lt;p&gt;在安裝之後，只要啟動這個擴充套件的&lt;code&gt;Enable Copy&lt;/code&gt;功能，就可以在原本不能選取的網頁正常選取了！&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/images/copyText.png&quot;&gt;&lt;/p&gt;
-&lt;h1 data-number=&quot;3&quot; id=&quot;google-search---geolocation-language-change&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;3&lt;/span&gt; Google Search - Geolocation &amp;amp;
-Language Change&lt;/h1&gt;
-&lt;p&gt;不知道大家會不會跟我有一樣的困擾——覺得Google越來越難用，現在即使是搜尋英文單字或日文漢字，也總是一堆中文的內容農場網頁排在前面，實在蠻困擾的，想要找個在地的結果，卻幾乎找不到。&lt;/p&gt;
-&lt;p&gt;還好，終於發現這個擴充功能，可以輕鬆的改變搜尋時候的地理位置和語言設定。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/images/location.png&quot;&gt;&lt;/p&gt;
-&lt;p&gt;安裝完後，在Google的搜尋頁面，會多出一個Location的按鈕，只要點下去，就可以選擇要轉換的地區和語言了，是不是很方便！&lt;/p&gt;
-&lt;h1 data-number=&quot;4&quot; id=&quot;小結&quot;&gt;&lt;span class=&quot;header-section-number&quot;&gt;4&lt;/span&gt; 小結&lt;/h1&gt;
-&lt;p&gt;這是我最近覺得非介紹不可的擴充功能，有其它好用的擴充功能，也請推薦！&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;/article&gt;&lt;comment&gt;&lt;script async=&quot;async&quot; crossorigin=&quot;anonymous&quot; data-category=&quot;General&quot; data-category-id=&quot;DIC_kwDOD5Bpa84COAIg&quot; data-emit-metadata=&quot;0&quot; data-input-position=&quot;top&quot; data-lang=&quot;en&quot; data-mapping=&quot;pathname&quot; data-reactions-enabled=&quot;0&quot; data-repo=&quot;onemouth/onemouth.github.io&quot; data-repo-id=&quot;MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=&quot; data-theme=&quot;light&quot; src=&quot;https://giscus.app/client.js&quot;&gt;&lt;/script&gt;&lt;script async=&quot;async&quot; src=&quot;https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/comment&gt;&lt;/div&gt;&lt;/main&gt;&lt;footer&gt;Site generated by pandoc and babashka&lt;/footer&gt;
-&lt;/body&gt;&lt;/html&gt;
-]]&gt;</summary></entry></feed>
+</section><section><div><div class="toc"><div class="header">Table of Contents</div><ul>
+<li><a href="#yomichan" id="toc-yomichan"><span class="toc-section-number">1</span> Yomichan</a></li>
+<li><a href="#absolute-enable-right-click-copy" id="toc-absolute-enable-right-click-copy"><span class="toc-section-number">2</span> Absolute Enable Right Click &amp;
+Copy</a></li>
+<li><a href="#google-search---geolocation-language-change" id="toc-google-search---geolocation-language-change"><span class="toc-section-number">3</span> Google Search - Geolocation &amp;
+Language Change</a></li>
+<li><a href="#小結" id="toc-小結"><span class="toc-section-number">4</span> 小結</a></li>
+</ul></div><div><p>在學習日文的過程中，也慢慢地使用一些擴充套件來增進學習的效果，所以想介紹三個我覺得是必備的擴充套件。分別為:</p>
+<ul>
+<li>Yomichan (<a href="https://addons.mozilla.org/zh-TW/firefox/addon/yomichan/">Firefox</a>,
+<a href="https://chrome.google.com/webstore/detail/yomichan/ogmnaimimemjmbakcfefmnahgdfhfami">Chrome</a>)</li>
+<li>Absolute Enable Right Click &amp; Copy (<a href="https://addons.mozilla.org/zh-TW/firefox/addon/absolute-enable-right-click/">Firefox</a>,
+<a href="https://chrome.google.com/webstore/detail/absolute-enable-right-cli/jdocbkpgdakpekjlhemmfcncgdjeiika">Chrome</a>)</li>
+<li>Google Search - Geolocation &amp; Language Change (<a href="https://addons.mozilla.org/zh-TW/firefox/addon/googlesearchgeolocationlang/">Firefox</a>,
+<a href="https://chrome.google.com/webstore/detail/google-search-geolocation/gglakldnncaidfodbmpaodhdknnlkjbb">Chrome</a>)</li>
+</ul>
+<p>其中Yomichan是最重要的，它是我們主要用來查詢日文的工具，後面兩個則可以起到輔助的作用。</p>
+<h1 data-number="1" id="yomichan"><span class="header-section-number">1</span> Yomichan</h1>
+<p><a href="https://foosoft.net/projects/yomichan/">Yomichan</a>是一個可以幫助我們在看日文網頁的時候，查詢單字的擴充套件，只要選取網頁上的字，再按下Shift鍵，就可以顯示這個日文單字的意思，十分方便。</p>
+<p><img src="/images/yomichan.png"></p>
+<p>在安裝完Yomichan之後，是沒有任何字典的，我們必須先手動下載字典檔後，再做一個匯入的動作。<a href="https://foosoft.net/projects/yomichan/#dictionaries">字典檔</a>可以在官網找到。</p>
+<p>我目前使用的有：</p>
+<ul>
+<li>JMDict (Englsih)</li>
+<li>JMnedict</li>
+<li>Kanjium Pitch Accents</li>
+</ul>
+<p>JMDict是一個免費的日英字典，幾乎絕大部分的字都可以找到。JMnedict則是專門收錄名字的字典，例如姓氏、人名或產品名稱等等，都可以在這個字典找到唸法。Kanjium則是針對日文聲調的部分，它會幫助顯示出這個單字重音的位置。</p>
+<p>這些字典下載下來之後，是一個zip檔，不需要解壓縮，直接到Yomichan的管理頁面匯入就可以使用了。</p>
+<p><img src="/images/yomichan2.png"></p>
+<p>另外除了上述資源外，也可以匯入其它的自製字典檔，有興趣的人可以到這個<a href="https://learnjapanese.moe/">網站</a>找尋其他資源。</p>
+<h1 data-number="2" id="absolute-enable-right-click-copy"><span class="header-section-number">2</span> Absolute Enable Right Click &amp;
+Copy</h1>
+<p>有些網頁會禁止我們選取上面的文字，例如歌詞網站或是一些影音串流平台。不能選取的話，我們就不能利用Yomichan來幫忙閱讀了，這時候，就是這個擴充套件出場的時候了。</p>
+<p>在安裝之後，只要啟動這個擴充套件的<code>Enable Copy</code>功能，就可以在原本不能選取的網頁正常選取了！</p>
+<p><img src="/images/copyText.png"></p>
+<h1 data-number="3" id="google-search---geolocation-language-change"><span class="header-section-number">3</span> Google Search - Geolocation &amp;
+Language Change</h1>
+<p>不知道大家會不會跟我有一樣的困擾——覺得Google越來越難用，現在即使是搜尋英文單字或日文漢字，也總是一堆中文的內容農場網頁排在前面，實在蠻困擾的，想要找個在地的結果，卻幾乎找不到。</p>
+<p>還好，終於發現這個擴充功能，可以輕鬆的改變搜尋時候的地理位置和語言設定。</p>
+<p><img src="/images/location.png"></p>
+<p>安裝完後，在Google的搜尋頁面，會多出一個Location的按鈕，只要點下去，就可以選擇要轉換的地區和語言了，是不是很方便！</p>
+<h1 data-number="4" id="小結"><span class="header-section-number">4</span> 小結</h1>
+<p>這是我最近覺得非介紹不可的擴充功能，有其它好用的擴充功能，也請推薦！</p></div></div></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry></feed>
