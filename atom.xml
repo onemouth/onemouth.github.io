@@ -1,4 +1,74 @@
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Put some ink into the inkpot</title><link href="https://onemouth.github.io/atom.xml" rel="self" /><link href="https://onemouth.github.io" /><id>https://onemouth.github.io/atom.xml</id><author><name>LT Tsai</name></author><updated>2023-03-14T13:16:55.230116Z</updated><entry><title>Consistent Hashing (和其他類似演算法)</title><link href="https://onemouth.github.io/posts/2023-01-02-consistent-hash.html" /><id>https://onemouth.github.io/posts/2023-01-02-consistent-hash.html</id><published>2023-01-02T12:00:00+08:00</published><updated>2023-01-02T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>Consistent
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Put some ink into the inkpot</title><link href="https://onemouth.github.io/atom.xml" rel="self" /><link href="https://onemouth.github.io" /><id>https://onemouth.github.io/atom.xml</id><author><name>LT Tsai</name></author><updated>2023-03-20T12:59:07.764062Z</updated><entry><title>Write myself a static side generator</title><link href="https://onemouth.github.io/posts/2023-03-20-new-blog-system.html" /><id>https://onemouth.github.io/posts/2023-03-20-new-blog-system.html</id><published>2023-03-20T12:00:00+08:00</published><updated>2023-03-20T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>Write
+myself a static side generator</h1><section class="header">
+Posted on Mar 20, 2023
+by LT
+</section><section><div><div class="toc"><div class="header">Table of Contents</div><ul>
+<li><a href="#hakyll" id="toc-hakyll"><span class="toc-section-number">1</span> Hakyll</a></li>
+<li><a href="#babashka" id="toc-babashka"><span class="toc-section-number">2</span> Babashka</a></li>
+<li><a href="#conclustion" id="toc-conclustion"><span class="toc-section-number">3</span> Conclustion</a></li>
+</ul></div><div><p>Originally this blog was generated using <a href="https://jaspervdj.be/hakyll">Hakyll</a>, but after using it for a
+while, although I liked its concise and simple design, I still found
+some aspects didn’t quite suit my needs. Recently, I happened to
+discover <a href="https://babashka.org">Babashka</a>, and I thought I
+could use Babashka and Pandoc CLI to implement the functionalities I
+used in Hakyll. This blog post mainly introduces my implementation. My
+implementation repository can be found <a href="https://github.com/onemouth/blog-source">here</a>.</p>
+<h1 data-number="1" id="hakyll"><span class="header-section-number">1</span> Hakyll</h1>
+<p>First, I’d like to explain how Hakyll, the tool I used to use, works.
+Hakyll is a library written in Haskell that provides helper functions
+for creating static websites. It uses another library called <a href="https://hackage.haskell.org/package/pandoc">Pandoc</a> to generate
+HTML files, and you can check out the Hakyll website
+(https://jaspervdj.be/hakyll/) for more information.</p>
+<p>What I love most about Hakyll is how straightforward it is.
+Essentially, all you need are some HTML templates, some CSS files, some
+markdown files, and a set of rules that allow Pandoc to generate HTML
+files from Markdown. Users are free to mix other Haskell libraries with
+Hakyll to create their ideal website, without feeling limited by the
+framework provided by the static site generator.</p>
+<p>However, there were still two aspects that I found difficult to work
+with. The first was my own unfamiliarity with the Haskell programming
+language, which meant that I had to spend a lot of time researching how
+to implement the features I wanted.</p>
+<p>The other issue was that, compared to directly using the Pandoc
+Library, I preferred to use the <a href="https://pandoc.org/#">Pandoc
+command-line interface (CLI)</a>. Pandoc is already a complex software,
+with a user manual of about 150 pages, and the functionality provided by
+the CLI alone is already quite complex. If I were to use the library
+instead, I would also have to deal with the complexity of Pandoc’s
+internal implementation and the Haskell programming language. So, for
+me, using only the CLI to convert formats is much simpler.</p>
+<h1 data-number="2" id="babashka"><span class="header-section-number">2</span> Babashka</h1>
+<p>In fact, several years ago when I began learning Clojure, I had the
+idea that a powerful dynamic language like Clojure would be great as a
+script language, capable of replacing Python or Bash for some quick
+tasks. However, in practice, because Clojure is a dialect running on the
+JVM, its startup speed is quite slow, making it not very suitable for
+writing CLI tools.</p>
+<p>Until recently, I discovered <a href="https://babashka.org">Babashka</a>, also known as “Fast native
+Clojure scripting runtime”. From the introduction on the official
+website, Babashka is designed to replace Bash scripts with a new
+designed runtime. It uses GraalVM native image technology, which makes
+its startup speed comparable to that of Python 3. When I found out about
+Babashka, I thought that using it along with other Clojure libraries
+would be a good way to quickly implement most of the functionality of
+Hakyll.</p>
+<p>My plan is to replace the HTML templates in Hakyll with <a href="https://github.com/weavejester/hiccup">Hicuup</a>. I will also use
+the <a href="https://github.com/babashka/process">process library</a>
+built into Babashka to call the Pandoc program. Additionally, I will use
+Babashka’s <a href="https://book.babashka.org/#tasks">task runner</a> to
+implement features such as <code>build</code> and <code>serve</code></p>
+<p>The whole process was much easier than I expected and very
+interesting. Currently, I have removed the use of Hakyll completely from
+the source code. Of course, I haven’t fully implemented all of Hakyll’s
+features, but for now it meets my needs. Since I built it myself, I have
+a better understanding of the entire website building process and have
+more control over it than before.</p>
+<h1 data-number="3" id="conclustion"><span class="header-section-number">3</span> Conclustion</h1>
+<p>If you use a static site generator, you may find yourself creating
+your own generator. That’s what happened to me - I ended up building my
+own
+one.</p></div></div></section></article><comment><script async="async" crossorigin="anonymous" data-category="General" data-category-id="DIC_kwDOD5Bpa84COAIg" data-emit-metadata="0" data-input-position="top" data-lang="en" data-mapping="pathname" data-reactions-enabled="0" data-repo="onemouth/onemouth.github.io" data-repo-id="MDEwOlJlcG9zaXRvcnkyNjExMjI0MTE=" data-theme="light" src="https://giscus.app/client.js"></script><script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML" type="text/javascript"></script></comment></div></main>
+]]></summary></entry><entry><title>Consistent Hashing (和其他類似演算法)</title><link href="https://onemouth.github.io/posts/2023-01-02-consistent-hash.html" /><id>https://onemouth.github.io/posts/2023-01-02-consistent-hash.html</id><published>2023-01-02T12:00:00+08:00</published><updated>2023-01-02T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>Consistent
 Hashing (和其他類似演算法)</h1><section class="header">
 Posted on Jan 02, 2023
 by LT
