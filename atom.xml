@@ -1,5 +1,5 @@
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Put some ink into the inkpot</title><link href="https://onemouth.github.io/atom.xml" rel="self" /><link href="https://onemouth.github.io" /><id>https://onemouth.github.io/atom.xml</id><author><name>LT Tsai</name></author><updated>2023-03-27T10:49:25.063979Z</updated><entry><title>Write myself a static side generator</title><link href="https://onemouth.github.io/posts/2023-03-20-new-blog-system.html" /><id>https://onemouth.github.io/posts/2023-03-20-new-blog-system.html</id><published>2023-03-20T12:00:00+08:00</published><updated>2023-03-20T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>Write
-myself a static side generator</h1><section class="header">
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Put some ink into the inkpot</title><link href="https://onemouth.github.io/atom.xml" rel="self" /><link href="https://onemouth.github.io" /><id>https://onemouth.github.io/atom.xml</id><author><name>LT Tsai</name></author><updated>2023-03-27T10:52:14.884815Z</updated><entry><title>Write myself a static site generator</title><link href="https://onemouth.github.io/posts/2023-03-20-new-blog-system.html" /><id>https://onemouth.github.io/posts/2023-03-20-new-blog-system.html</id><published>2023-03-20T12:00:00+08:00</published><updated>2023-03-20T12:00:00+08:00</updated><summary type="html"><![CDATA[<main><div><article><h1>Write
+myself a static site generator</h1><section class="header">
 Posted on Mar 20, 2023
 by LT
 </section><section><div><div class="toc"><div class="header">Table of Contents</div><ul>
@@ -56,7 +56,8 @@ Hakyll.</p>
 the <a href="https://github.com/babashka/process">process library</a>
 built into Babashka to call the Pandoc program. Additionally, I will use
 Babashka’s <a href="https://book.babashka.org/#tasks">task runner</a> to
-implement features such as <code>build</code> and <code>serve</code></p>
+implement features such as <code>build</code> and
+<code>serve</code>.</p>
 <p>The whole process was much easier than I expected and very
 interesting. Currently, I have removed the use of Hakyll completely from
 the source code. Of course, I haven’t fully implemented all of Hakyll’s
