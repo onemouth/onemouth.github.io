@@ -35,8 +35,8 @@ footer {
 
 .toc {
   position: fixed;
-  left: 10rem;
-  top: 10rem;
+  left: 10vw;
+  top: 10vw;
   max-width: 15%;
 }
 
@@ -93,7 +93,7 @@ footer {
 
 @media (min-width: 640px) {
   body {
-    width: 60rem;
+    width: 45vw;
     margin: 0 auto;
     padding: 0;
   }
