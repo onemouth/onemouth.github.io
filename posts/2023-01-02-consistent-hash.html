@@ -114,8 +114,9 @@ class="header-section-number">2.1.3</span> 實現</h3>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    sort<span class="op">.</span>Ints<span class="op">(</span>m<span class="op">.</span>circle<span class="op">)</span></span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p>不管是新增或刪除node，我們都會重新呼叫這個<code>Add</code>function，來建立virtual
-node與server之間的對應。在這個function 中有兩個重要的變數：</p>
+<p>不管是新增或刪除node，我們都會重新呼叫這個<code>Add</code>
+function，來建立virtual node與server之間的對應。在這個function
+中有兩個重要的變數：</p>
 <ul>
 <li><code>m.circle</code>: 從小到大排序好的 virtual nodes</li>
 <li><code>m.hashMap</code>: 每一個virtual node對應到的server</li>
