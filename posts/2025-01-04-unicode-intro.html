@@ -67,9 +67,9 @@ Surrogate area
 Surrogate 的範圍是從 <code>U+D800</code> 到 <code>U+DBFF</code>，而 Low
 Surrogate的範圍是從<code>U+DC00</code> 到 <code>U+DFFF</code> 。
 不難看出, High Surrogate 和 Low Surrogate 的大小都是 4
-<em> 256，所以當我們把 High Surrogate 和 Low Surrogate
-組合起來的話，就可以得到4</em>256<em>4</em>256 種可能，等於
-16*65536，也就是 Plane 1 到 Plane 16所需要的個數！</p>
+* 256，所以當我們把 High Surrogate 和 Low Surrogate
+組合起來的話，就可以得到4*256*4*256 種可能，等於 16*65536，也就是 Plane
+1 到 Plane 16所需要的個數！</p>
 <h1 data-number="2" id="encoding"><span
 class="header-section-number">2</span> Encoding</h1>
 <p>雖然我們定義了Code point，但Code point
@@ -97,7 +97,7 @@ area來編碼，也就是說，在BMP之內的字符，會是2個bytes長，BMP�
 長。</p>
 <p>好處是常用字符(BMP)都只需要2個bytes，節省空間。壞處是不兼容ASCII,
 原先用ASCII表示的話，只需要1 byte 的英文字母，用UTF-16則需要2 bytes。
-另外也需要 BMP 來確定位元順序。</p>
+另外也需要 BOM 來確定位元順序。</p>
 <p>在有些地方可以看到USC-2這個詞，可以把USC-2編碼視為不支持Surrogate
 area的UTF-16,也就是說，USC-2 只會有2 bytes而且只能處理BMP有的字符。</p>
 <h2 data-number="2.3" id="utf-8"><span
